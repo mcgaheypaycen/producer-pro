@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
 import { Drawer, Field, SearchInput, EmptyState, ConfirmDialog, useToast } from '../ui.jsx';
+import { illustrations, icons } from '../assets/index.js';
+import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
 
 export function VenueForm({ venue, onClose, onSaved }) {
   const { save } = useData();
@@ -75,7 +77,7 @@ export default function VenuesPage() {
 
   useTopBar(
     [{ label: 'Venues' }],
-    <button className="btn primary" onClick={openAdd}>Add venue</button>
+    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add venue</BtnWithIcon>
   );
 
   const filtered = useMemo(() => {
@@ -101,9 +103,10 @@ export default function VenuesPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration={!query ? illustrations.emptyVenues() : null}
           title={query ? 'No matches' : 'No venues saved'}
           body={query ? 'Try a different search.' : 'Add the venues where you produce shows.'}
-          action={!query ? <button className="btn primary" onClick={openAdd}>Add venue</button> : null}
+          action={!query ? <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add venue</BtnWithIcon> : null}
         />
       ) : (
         <div className="data-table-wrap">
@@ -133,7 +136,7 @@ export default function VenuesPage() {
                     <td className="mono">{v.capacity || '—'}</td>
                     <td className="mono">{showCount}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button className="icon-btn danger" title="Delete" onClick={() => setDeleting(v)}>✕</button>
+                      <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(v)} />
                     </td>
                   </tr>
                 );

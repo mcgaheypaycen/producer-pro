@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
 import { Drawer, Field, SearchInput, EmptyState, ConfirmDialog, useToast, PaymentChip } from '../ui.jsx';
+import { illustrations, icons } from '../assets/index.js';
+import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
 
 export const PAYMENT_METHODS = ['Venmo', 'CashApp', 'PayPal', 'Zelle', 'Cash', 'Check', 'Other'];
 
@@ -118,7 +120,7 @@ export default function PerformersPage() {
 
   useTopBar(
     [{ label: 'Performers' }],
-    <button className="btn primary" onClick={openAdd}>Add performer</button>
+    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add performer</BtnWithIcon>
   );
 
   const filtered = useMemo(() => {
@@ -144,9 +146,10 @@ export default function PerformersPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration={!query ? illustrations.emptyPerformers() : null}
           title={query ? 'No matches' : 'No performers in the roster'}
           body={query ? 'Try a different search.' : 'Add performers to build shows and pre-fill payouts.'}
-          action={!query ? <button className="btn primary" onClick={openAdd}>Add performer</button> : null}
+          action={!query ? <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add performer</BtnWithIcon> : null}
         />
       ) : (
         <div className="data-table-wrap">
@@ -173,7 +176,7 @@ export default function PerformersPage() {
                     <td><PaymentChip method={p.paymentMethod} info={p.paymentInfo} /></td>
                     <td className="mono">{actCount}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button className="icon-btn danger" title="Delete" onClick={() => setDeleting(p)}>✕</button>
+                      <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(p)} />
                     </td>
                   </tr>
                 );

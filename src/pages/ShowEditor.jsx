@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
 import { Modal, Field, SearchInput, EmptyState, useToast, money, formatDate, StatusBadge, formatRuntime, parseMinutes, ConfirmDialog } from '../ui.jsx';
+import { illustrations, icons } from '../assets/index.js';
+import Icon, { IconButton, BtnWithIcon } from '../components/Icon.jsx';
+import PackageProgressIcon from '../components/PackageProgressIcon.jsx';
 import { normalizeRunSheetOptions } from '../../shared/runSheetConfig.cjs';
 import { ActFormModal } from './ActsPage.jsx';
 import { VenueFormModal } from './VenuesPage.jsx';
@@ -14,27 +17,38 @@ function newKey() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function PackagePreviewDialog({ stats, onConfirm, onClose, busy }) {
+function PackagePreviewDialog({ stats, onConfirm, onClose, busy, progressPhase }) {
   return (
     <Modal
       title="Generate package"
       onClose={onClose}
       footer={
         <>
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={onConfirm} disabled={busy}>
+          <button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
+          <BtnWithIcon
+            icon={busy ? null : icons.action('export')}
+            className="btn primary"
+            onClick={onConfirm}
+            disabled={busy}
+          >
             {busy ? 'Generating…' : 'Generate package'}
-          </button>
+          </BtnWithIcon>
         </>
       }
     >
-      <p style={{ color: 'var(--on-paper-muted)', marginBottom: 8 }}>
-        Choose a destination folder next. The package will include:
-      </p>
+      <div className="package-preview-header">
+        <PackageProgressIcon phase={busy ? progressPhase : 'idle'} size={48} />
+        <p style={{ color: 'var(--on-paper-muted)', margin: 0 }}>
+          Choose a destination folder next. The package will include:
+        </p>
+      </div>
       <div className="package-preview">
         <div className="package-preview-item">{stats.mediaCount} media file{stats.mediaCount === 1 ? '' : 's'} will be copied & renamed</div>
         {stats.missingCount > 0 && (
-          <div className="package-preview-item warn">{stats.missingCount} act{stats.missingCount === 1 ? '' : 's'} ha{stats.missingCount === 1 ? 's' : 've'} no media — will be skipped</div>
+          <div className="package-preview-item warn">
+            <Icon src={icons.action('warning')} size={18} alt="" />
+            {stats.missingCount} act{stats.missingCount === 1 ? '' : 's'} ha{stats.missingCount === 1 ? 's' : 've'} no media — will be skipped
+          </div>
         )}
         <div className="package-preview-item">1 run sheet (RTF) using your typography settings</div>
       </div>
@@ -72,7 +86,7 @@ function AddActModal({ onPick, onClose }) {
       footer={
         <>
           <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn secondary" onClick={() => setCreating(true)}>Add act</button>
+          <BtnWithIcon icon={icons.action('add')} className="btn secondary" onClick={() => setCreating(true)}>Add act</BtnWithIcon>
         </>
       }
     >
@@ -91,7 +105,9 @@ function AddActModal({ onPick, onClose }) {
                 <div className="picker-name">{a.name}</div>
                 <div className="picker-sub">{performerName(a.performerId)}{a.length ? ` · ${a.length}` : ''}</div>
               </div>
-              <span style={{ color: 'var(--wine-600)', fontWeight: 700 }}>+</span>
+              <span style={{ color: 'var(--wine-600)' }}>
+                <Icon src={icons.action('add')} size={16} alt="" />
+              </span>
             </button>
           ))}
         </div>
@@ -134,7 +150,9 @@ function SegmentModal({ segment, onSave, onClose }) {
       footer={
         <>
           <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={submit}>{segment ? 'Save segment' : 'Add to running order'}</button>
+          <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={submit}>
+            {segment ? 'Save segment' : 'Add to running order'}
+          </BtnWithIcon>
         </>
       }
     >
@@ -155,12 +173,17 @@ function SegmentModal({ segment, onSave, onClose }) {
             </button>
             {form.mediaPath ? (
               <>
-                <span className="media-badge ok">♫ {form.mediaName}</span>
-                <button
-                  className="icon-btn danger"
+                <span className="media-badge ok">
+                  <Icon src={icons.status('badge-media-ok')} size={12} alt="" />
+                  {form.mediaName}
+                </span>
+                <IconButton
+                  src={icons.action('delete')}
+                  className="danger"
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, mediaPath: '', mediaName: '' }))}
-                >✕</button>
+                  title="Remove media"
+                />
               </>
             ) : (
               <span style={{ color: 'var(--on-paper-muted)', fontSize: 13 }}>No file attached</span>
@@ -183,6 +206,7 @@ export default function ShowEditor({ showId, onBack }) {
   const [editingActId, setEditingActId] = useState(null);
   const [addingVenue, setAddingVenue] = useState(false);
   const [packaging, setPackaging] = useState(false);
+  const [packagePhase, setPackagePhase] = useState('idle');
   const [packagePreview, setPackagePreview] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const [closeoutDraft, setCloseoutDraft] = useState(null);
@@ -193,6 +217,16 @@ export default function ShowEditor({ showId, onBack }) {
   useEffect(() => {
     setRunSheetOptions(normalizeRunSheetOptions(show?.runSheet));
   }, [showId]);
+
+  useEffect(() => {
+    if (!packaging) {
+      setPackagePhase('idle');
+      return;
+    }
+    setPackagePhase('copying');
+    const writingTimer = setTimeout(() => setPackagePhase('writing-rtf'), 1400);
+    return () => clearTimeout(writingTimer);
+  }, [packaging]);
 
   const closed = show?.status === 'closed';
   const status = show?.status || 'draft';
@@ -223,19 +257,19 @@ export default function ShowEditor({ showId, onBack }) {
   let primaryAction = null;
   if (show) {
     if (closed) {
-      primaryAction = <button className="btn primary" onClick={async () => {
+      primaryAction = <BtnWithIcon icon={icons.action('export')} className="btn primary" onClick={async () => {
         const result = await window.api.exportCsv({ show: { ...show, venueName: venueNameForBar }, closeout: show.closeout });
         if (result?.canceled) return;
         if (result?.error) toast('Export failed', result.error, 'error');
         else toast('Settlement exported', result.filePath);
-      }}>Export settlement</button>;
+      }}>Export settlement</BtnWithIcon>;
     } else if (zone === 'closeout') {
       primaryAction = <button className="btn primary" onClick={() => setConfirmClose(true)}>Close out</button>;
     } else {
       primaryAction = (
-        <button className="btn primary" onClick={() => setPackagePreview(true)} disabled={packaging}>
+        <BtnWithIcon icon={icons.action('export')} className="btn primary" onClick={() => setPackagePreview(true)} disabled={packaging}>
           Generate package
-        </button>
+        </BtnWithIcon>
       );
     }
   }
@@ -348,6 +382,7 @@ export default function ShowEditor({ showId, onBack }) {
       return;
     }
     setPackaging(true);
+    setPackagePhase('copying');
     try {
       const payload = {
         show: {
@@ -380,10 +415,12 @@ export default function ShowEditor({ showId, onBack }) {
         toast('Package failed', result.error, 'error');
         return;
       }
+      setPackagePhase('complete');
       await update({ status: closed ? 'closed' : 'packaged', folderPath: result.folderPath, runSheet: runSheetOptions });
       const missingNote = result.missing?.length ? ` ${result.missing.length} file(s) missing on disk.` : '';
       toast('Package ready', `${result.copied.length} media file(s) + run sheet.${missingNote}`, 'success', {
         label: 'Reveal in folder',
+        icon: icons.action('folder-open'),
         onClick: () => window.api.openPath(result.folderPath),
       });
     } finally {
@@ -422,7 +459,9 @@ export default function ShowEditor({ showId, onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
           <StatusBadge status={status} />
           {show.folderPath && (
-            <button className="btn ghost sm" onClick={() => window.api.openPath(show.folderPath)}>Reveal in folder</button>
+            <BtnWithIcon icon={icons.action('folder-open')} className="btn ghost sm" onClick={() => window.api.openPath(show.folderPath)}>
+              Reveal in folder
+            </BtnWithIcon>
           )}
         </div>
       </div>
@@ -440,7 +479,7 @@ export default function ShowEditor({ showId, onBack }) {
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
-              {!closed && <button className="btn sm secondary" onClick={() => setAddingVenue(true)}>+</button>}
+              {!closed && <IconButton src={icons.action('add')} title="Add venue" onClick={() => setAddingVenue(true)} />}
             </div>
           </Field>
           <Field label="Ticket price">
@@ -485,9 +524,9 @@ export default function ShowEditor({ showId, onBack }) {
             <div className="summary-stat"><span className="stat-label">Folder</span><span style={{ fontSize: 12, wordBreak: 'break-all' }}>{show.folderPath}</span></div>
           )}
           {!closed && (
-            <button className="btn primary" style={{ marginTop: 20 }} onClick={() => setPackagePreview(true)} disabled={packaging}>
+            <BtnWithIcon icon={icons.action('export')} className="btn primary" style={{ marginTop: 20 }} onClick={() => setPackagePreview(true)} disabled={packaging}>
               Generate package
-            </button>
+            </BtnWithIcon>
           )}
         </div>
       )}
@@ -502,24 +541,25 @@ export default function ShowEditor({ showId, onBack }) {
                   <span className="data">{resolved.length}</span> entries · est. <span className="data">{formatRuntime(totalMinutes)}</span>
                   {resolved.length > 0 && <> · <span className="data">{mediaAttached}/{resolved.length}</span> have media</>}
                 </div>
-                {!closed && <p className="page-lead" style={{ marginTop: 6 }}>Drag ⠿ handles to reorder acts and segments.</p>}
+                {!closed && <p className="page-lead" style={{ marginTop: 6 }}>Drag handles to reorder acts and segments.</p>}
               </div>
               {!closed && (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn secondary sm" onClick={() => setAddingSegment(true)}>Add segment</button>
-                  <button className="btn secondary sm" onClick={() => setAddingAct(true)}>Add act</button>
+                  <BtnWithIcon icon={icons.action('add')} className="btn secondary sm" onClick={() => setAddingSegment(true)}>Add segment</BtnWithIcon>
+                  <BtnWithIcon icon={icons.action('add')} className="btn secondary sm" onClick={() => setAddingAct(true)}>Add act</BtnWithIcon>
                 </div>
               )}
             </div>
 
             {resolved.length === 0 ? (
               <EmptyState
+                illustration={illustrations.emptyLineup()}
                 title="Build your running order"
                 body="Add performer acts and segments like the host welcome, games, or announcements."
                 action={!closed ? (
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                    <button className="btn secondary sm" onClick={() => setAddingSegment(true)}>Add segment</button>
-                    <button className="btn primary sm" onClick={() => setAddingAct(true)}>Add act</button>
+                    <BtnWithIcon icon={icons.action('add')} className="btn secondary sm" onClick={() => setAddingSegment(true)}>Add segment</BtnWithIcon>
+                    <BtnWithIcon icon={icons.action('add')} className="btn primary sm" onClick={() => setAddingAct(true)}>Add act</BtnWithIcon>
                   </div>
                 ) : null}
               />
@@ -558,6 +598,7 @@ export default function ShowEditor({ showId, onBack }) {
           onConfirm={runPackage}
           onClose={() => setPackagePreview(false)}
           busy={packaging}
+          progressPhase={packagePhase}
         />
       )}
 

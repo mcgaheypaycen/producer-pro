@@ -1,7 +1,23 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
+import { textures, ONBOARDING_KEY } from './assets/index.js';
+import './fonts.css';
 import './styles.css';
+
+if (window.api?.resetOnboarding) {
+  localStorage.removeItem(ONBOARDING_KEY);
+}
+
+const textureVars = {
+  '--bg-rail-texture': textures.rail(),
+  '--bg-paper-texture': textures.paper(),
+  '--bg-runsheet-desk': textures.runsheetDesk(),
+  '--bg-runsheet-paper': textures.runsheetPaper(),
+};
+for (const [name, url] of Object.entries(textureVars)) {
+  if (url) document.documentElement.style.setProperty(name, `url(${url})`);
+}
 
 // In-browser fallback (vite dev server outside Electron): in-memory store so
 // the UI stays fully navigable. The real preload bridge always wins.

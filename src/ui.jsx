@@ -1,11 +1,14 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
+import { icons } from './assets/index.js';
+import { IconButton, BtnWithIcon } from './components/Icon.jsx';
+import Icon from './components/Icon.jsx';
 
 /* ---------- Status badge ---------- */
 
 const STATUS_CONFIG = {
-  draft: { label: 'Draft', detail: 'lineup editable' },
-  packaged: { label: 'Packaged', detail: 'folder on disk' },
-  closed: { label: 'Closed', detail: 'settled & read-only' },
+  draft: { label: 'Draft', detail: 'lineup editable', icon: 'status-draft-dot' },
+  packaged: { label: 'Packaged', detail: 'folder on disk', icon: 'status-packaged' },
+  closed: { label: 'Closed', detail: 'settled & read-only', icon: 'status-closed' },
 };
 
 export function StatusBadge({ status }) {
@@ -13,7 +16,7 @@ export function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[s] || STATUS_CONFIG.draft;
   return (
     <span className={'badge ' + s}>
-      <span className="badge-dot" />
+      <Icon src={icons.status(cfg.icon)} size={14} className="badge-icon" alt="" />
       {cfg.label} · {cfg.detail}
     </span>
   );
@@ -50,7 +53,7 @@ export function Modal({ title, children, footer, onClose, wide }) {
       <div className={'modal' + (wide ? ' wide' : '')}>
         <div className="modal-header">
           <div className="modal-title">{title}</div>
-          <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close">✕</button>
+          <IconButton src={icons.action('close')} onClick={onClose} title="Close" />
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}
@@ -68,7 +71,7 @@ export function Drawer({ title, children, footer, onClose }) {
       <div className="drawer">
         <div className="drawer-header">
           <div className="drawer-title">{title}</div>
-          <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close">✕</button>
+          <IconButton src={icons.action('close')} onClick={onClose} title="Close" />
         </div>
         <div className="drawer-body">{children}</div>
         {footer && <div className="drawer-footer">{footer}</div>}
@@ -92,7 +95,7 @@ export function Field({ label, children, full, helper }) {
 export function SearchInput({ value, onChange, placeholder }) {
   return (
     <div className="search-wrap">
-      <span className="search-icon">⌕</span>
+      <Icon src={icons.action('search')} size={16} className="search-icon" alt="" />
       <input
         className="input"
         value={value}
@@ -103,10 +106,12 @@ export function SearchInput({ value, onChange, placeholder }) {
   );
 }
 
-export function EmptyState({ title, body, action }) {
+export function EmptyState({ title, body, action, illustration }) {
   return (
     <div className="empty">
-      <div className="empty-ring">◎</div>
+      {illustration && (
+        <img src={illustration} alt="" className="empty-art" width={240} height={180} />
+      )}
       <div className="empty-title">{title}</div>
       <div className="empty-body">{body}</div>
       {action}
@@ -117,6 +122,12 @@ export function EmptyState({ title, body, action }) {
 /* ---------- Toasts ---------- */
 
 const ToastContext = createContext(null);
+
+const TOAST_ICON = {
+  success: 'toast-success',
+  error: 'toast-error',
+  info: 'toast-info',
+};
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
@@ -133,13 +144,17 @@ export function ToastProvider({ children }) {
       <div className="toast-stack">
         {toasts.map((t) => (
           <div key={t.id} className={'toast' + (t.kind === 'error' ? ' error' : '')}>
-            <div className="toast-title">{t.title}</div>
-            {t.body && <div className="toast-body">{t.body}</div>}
+            <Icon src={icons.status(TOAST_ICON[t.kind] || TOAST_ICON.success)} size={20} className="toast-icon" alt="" />
+            <div className="toast-content">
+              <div className="toast-title">{t.title}</div>
+              {t.body && <div className="toast-body">{t.body}</div>}
             {t.action && (
               <button className="toast-action" onClick={() => { t.action.onClick(); setToasts((ts) => ts.filter((x) => x.id !== t.id)); }}>
+                {t.action.icon && <Icon src={t.action.icon} size={14} alt="" />}
                 {t.action.label}
               </button>
             )}
+            </div>
           </div>
         ))}
       </div>
@@ -154,6 +169,7 @@ export function useToast() {
 /* ---------- Confirm dialog ---------- */
 
 export function ConfirmDialog({ title, body, confirmLabel, onConfirm, onCancel, danger }) {
+  const confirmIcon = danger ? icons.action('delete') : icons.action('check');
   return (
     <Modal
       title={title}
@@ -161,9 +177,13 @@ export function ConfirmDialog({ title, body, confirmLabel, onConfirm, onCancel, 
       footer={
         <>
           <button className="btn ghost" onClick={onCancel}>Cancel</button>
-          <button className={'btn ' + (danger ? 'danger' : 'primary')} onClick={onConfirm}>
+          <BtnWithIcon
+            icon={confirmIcon}
+            className={'btn ' + (danger ? 'danger' : 'primary')}
+            onClick={onConfirm}
+          >
             {confirmLabel || 'Confirm'}
-          </button>
+          </BtnWithIcon>
         </>
       }
     >

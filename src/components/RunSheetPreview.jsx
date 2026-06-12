@@ -1,5 +1,6 @@
 import React from 'react';
 import { RUN_SHEET_FIELD_LABELS } from '../../shared/runSheetConfig.cjs';
+import { brand } from '../assets/index.js';
 
 function spanStyle(style) {
   return {
@@ -51,7 +52,7 @@ export default function RunSheetPreview({ options }) {
           <div className="run-sheet-preview-title">Run sheet</div>
           <div className="run-sheet-preview-sub">Page preview of the exported document</div>
         </div>
-        <span className="run-sheet-preview-badge">Sample</span>
+        <img src={brand.sampleWatermark()} alt="Sample" className="run-sheet-preview-badge" />
       </div>
 
       <div className="run-sheet-preview-stage">

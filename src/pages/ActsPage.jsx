@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
 import { Modal, Field, SearchInput, EmptyState, ConfirmDialog, useToast, formatDate, StatusBadge } from '../ui.jsx';
+import { illustrations, icons } from '../assets/index.js';
+import Icon, { IconButton, BtnWithIcon } from '../components/Icon.jsx';
 import { PerformerForm } from './PerformersPage.jsx';
 
 function newLineupKey() {
@@ -149,7 +151,7 @@ export function ActFormModal({ act, defaultPerformerId, onClose, onSaved }) {
               <option value="">Select performer…</option>
               {sortedPerformers.map((p) => <option key={p.id} value={p.id}>{p.stageName}</option>)}
             </select>
-            <button className="btn sm secondary" type="button" title="Add performer" onClick={() => setAddingPerformer(true)}>+</button>
+            <IconButton src={icons.action('add')} title="Add performer" onClick={() => setAddingPerformer(true)} />
           </div>
         </Field>
         <Field label="Aesthetic">
@@ -174,8 +176,11 @@ export function ActFormModal({ act, defaultPerformerId, onClose, onSaved }) {
             </button>
             {form.mediaPath ? (
               <>
-                <span className={'media-badge ok'}>♫ {form.mediaName}</span>
-                <button className="icon-btn danger" type="button" onClick={() => setForm((f) => ({ ...f, mediaPath: '', mediaName: '' }))}>✕</button>
+                <span className={'media-badge ok'}>
+                  <Icon src={icons.status('badge-media-ok')} size={12} alt="" />
+                  {form.mediaName}
+                </span>
+                <IconButton src={icons.action('delete')} className="danger" type="button" onClick={() => setForm((f) => ({ ...f, mediaPath: '', mediaName: '' }))} title="Remove media" />
               </>
             ) : (
               <span style={{ color: 'var(--on-paper-muted)', fontSize: 13 }}>No file attached</span>
@@ -209,7 +214,7 @@ export default function ActsPage() {
 
   useTopBar(
     [{ label: 'Acts' }],
-    <button className="btn primary" onClick={openAdd}>Add act</button>
+    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add act</BtnWithIcon>
   );
 
   const performerName = (id) => performers.find((p) => p.id === id)?.stageName || 'Unknown performer';
@@ -237,9 +242,10 @@ export default function ActsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration={!query ? illustrations.emptyActs() : null}
           title={query ? 'No matches' : 'No acts in the library'}
           body={query ? 'Try a different search.' : 'Create acts for your performers — reusable across every show.'}
-          action={!query ? <button className="btn primary" onClick={openAdd}>Add act</button> : null}
+          action={!query ? <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add act</BtnWithIcon> : null}
         />
       ) : (
         <div className="card-grid">
@@ -254,7 +260,7 @@ export default function ActsPage() {
                 </div>
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn ghost sm" title="Add to open show" onClick={() => setAddingToShow(a)}>Add to show</button>
-                  <button className="icon-btn danger" title="Delete" onClick={() => setDeleting(a)}>✕</button>
+                  <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(a)} />
                 </div>
               </div>
               {a.tagline && <div className="card-sub italic" style={{ marginTop: 8 }}>"{a.tagline}"</div>}
@@ -263,7 +269,8 @@ export default function ActsPage() {
                 <div className="meta-line"><span className="meta-label">Length</span><span className="data">{a.length || '—'}</span></div>
               </div>
               <span className={'media-badge ' + (a.mediaPath ? 'ok' : 'missing')} style={{ marginTop: 10, display: 'inline-flex' }}>
-                {a.mediaPath ? <>media ✓ · {a.mediaName}</> : 'no media'}
+                <Icon src={icons.status(a.mediaPath ? 'badge-media-ok' : 'badge-media-missing')} size={12} alt="" />
+                {a.mediaPath ? <>media · {a.mediaName}</> : 'no media'}
               </span>
             </div>
           ))}

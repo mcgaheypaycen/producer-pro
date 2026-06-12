@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { icons } from '../assets/index.js';
+import Icon, { IconButton } from './Icon.jsx';
 
 export default function LineupDragList({
   entries,
@@ -16,6 +18,8 @@ export default function LineupDragList({
     if (from === null || to === null || from === to) return;
     onReorder(from, to);
   };
+
+  const dragIcon = icons.action('drag');
 
   return (
     <div className="lineup">
@@ -53,17 +57,22 @@ export default function LineupDragList({
               }}
               onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
             >
-              ⠿
+              <Icon src={dragIcon} size={16} alt="" />
             </button>
           ) : (
-            <span className="drag-handle drag-handle-static" aria-hidden>⠿</span>
+            <span className="drag-handle drag-handle-static" aria-hidden>
+              <Icon src={dragIcon} size={16} alt="" />
+            </span>
           )}
           <div className="marquee-numeral">{i + 1}</div>
           <div className="lineup-body">
             {entry.type === 'segment' ? (
               <>
                 <div className="lineup-act-name">{entry.title}</div>
-                <div className="lineup-seg-label">Segment</div>
+                <div className="lineup-seg-label">
+                  <Icon src={icons.status('badge-segment')} size={12} alt="" />
+                  Segment
+                </div>
                 {entry.notes && <div className="lineup-detail">{entry.notes}</div>}
               </>
             ) : (
@@ -81,18 +90,23 @@ export default function LineupDragList({
           <div className="lineup-meta">
             {entry.length && <span className="lineup-time">{entry.length}</span>}
             <span className={'media-badge ' + (entry.mediaPath ? 'ok' : 'missing')}>
-              {entry.mediaPath ? 'media ✓' : 'no media'}
+              <Icon
+                src={icons.status(entry.mediaPath ? 'badge-media-ok' : 'badge-media-missing')}
+                size={12}
+                alt=""
+              />
+              {entry.mediaPath ? 'media' : 'no media'}
             </span>
           </div>
           {!closed && (
             <div className="lineup-actions">
-              <button className="icon-btn" title="Attach media" onClick={() => onAttachMedia(entry)}>♫</button>
-              <button
-                className="icon-btn"
+              <IconButton src={icons.action('media')} title="Attach media" onClick={() => onAttachMedia(entry)} />
+              <IconButton
+                src={icons.action('edit')}
                 title="Edit"
                 onClick={() => entry.type === 'segment' ? onEditSegment(entry.key) : entry.act && onEditAct(entry.act.id)}
-              >✎</button>
-              <button className="icon-btn danger" title="Remove" onClick={() => onRemove(i)}>✕</button>
+              />
+              <IconButton src={icons.action('delete')} className="danger" title="Remove" onClick={() => onRemove(i)} />
             </div>
           )}
         </div>

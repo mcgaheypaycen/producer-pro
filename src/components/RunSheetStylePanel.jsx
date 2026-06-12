@@ -1,5 +1,7 @@
 import React from 'react';
 import FontPicker from './FontPicker.jsx';
+import { icons } from '../assets/index.js';
+import { IconButton } from './Icon.jsx';
 import { ELEMENT_LABELS, RUN_SHEET_FIELD_LABELS } from '../../shared/runSheetConfig.cjs';
 
 function ElementStyleRow({ label, style, onChange, fonts, disabled }) {
@@ -123,8 +125,8 @@ export default function RunSheetStylePanel({ options, onChange, fonts, disabled 
               </label>
               {!disabled && (
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <button className="icon-btn" title="Move up" disabled={i === 0} onClick={() => moveField(i, -1)}>▲</button>
-                  <button className="icon-btn" title="Move down" disabled={i === options.fields.length - 1} onClick={() => moveField(i, 1)}>▼</button>
+                  <IconButton src={icons.action('chevron-up')} title="Move up" disabled={i === 0} onClick={() => moveField(i, -1)} />
+                  <IconButton src={icons.action('chevron-down')} title="Move down" disabled={i === options.fields.length - 1} onClick={() => moveField(i, 1)} />
                 </div>
               )}
             </div>

@@ -9,9 +9,54 @@ const { getMediaLengthLabel, isImageMedia } = require('./mediaDuration');
 let cachedSystemFonts = null;
 
 let mainWindow = null;
+let splashWindow = null;
 let store = null;
 
+function resolveAsset(...parts) {
+  return path.join(__dirname, '..', 'assets', ...parts);
+}
+
+function createSplashWindow() {
+  const splashPath = resolveAsset('build', 'splash-1600x1000.png');
+  const fallback = resolveAsset('build', 'splash-800x500.png');
+  const imagePath = fs.existsSync(splashPath) ? splashPath : (fs.existsSync(fallback) ? fallback : null);
+  if (!imagePath) return null;
+
+  splashWindow = new BrowserWindow({
+    width: 800,
+    height: 500,
+    frame: false,
+    resizable: false,
+    center: true,
+    show: false,
+    alwaysOnTop: true,
+    backgroundColor: '#150F13',
+    skipTaskbar: true,
+  });
+
+  const fileUrl = imagePath.replace(/\\/g, '/');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    html,body{margin:0;height:100%;background:#150F13;display:flex;align-items:center;justify-content:center}
+    img{max-width:100%;max-height:100%;object-fit:contain}
+  </style></head><body><img src="file:///${fileUrl}" width="800" height="500" alt=""/></body></html>`;
+
+  splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  splashWindow.once('ready-to-show', () => splashWindow?.show());
+  return splashWindow;
+}
+
+function closeSplashWindow() {
+  if (splashWindow) {
+    splashWindow.close();
+    splashWindow = null;
+  }
+}
+
 function createWindow() {
+  const iconPng = resolveAsset('build', 'icon-1024.png');
+  const iconSvg = resolveAsset('brand', 'logo-icon-only.svg');
+  const iconPath = fs.existsSync(iconPng) ? iconPng : (fs.existsSync(iconSvg) ? iconSvg : undefined);
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -20,6 +65,7 @@ function createWindow() {
     backgroundColor: '#0d0b14',
     autoHideMenuBar: true,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -27,7 +73,10 @@ function createWindow() {
     },
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    closeSplashWindow();
+    mainWindow.show();
+  });
 
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -130,10 +179,14 @@ function registerIpc() {
 app.whenReady().then(() => {
   store = new Store(app.getPath('userData'));
   registerIpc();
+  createSplashWindow();
   createWindow();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createSplashWindow();
+      createWindow();
+    }
   });
 });
 

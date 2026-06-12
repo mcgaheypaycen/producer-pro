@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataProvider, useData } from './data.jsx';
 import { ToastProvider } from './ui.jsx';
 import { ShellProvider, useShell } from './shell.jsx';
+import { brand, icons, ONBOARDING_KEY } from './assets/index.js';
+import LoadingScreen from './components/LoadingScreen.jsx';
+import OnboardingModal from './components/OnboardingModal.jsx';
+import Icon from './components/Icon.jsx';
 import ShowsPage from './pages/ShowsPage.jsx';
 import ShowEditor from './pages/ShowEditor.jsx';
 import PerformersPage from './pages/PerformersPage.jsx';
@@ -15,23 +19,24 @@ const NAV = [
   { id: 'acts', label: 'Acts' },
 ];
 
-function formatLastSaved(iso) {
-  if (!iso) return 'Not saved yet';
-  try {
-    return 'Saved ' + new Date(iso).toLocaleString(undefined, {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    });
-  } catch {
-    return '';
-  }
-}
-
 function Shell() {
   const [route, setRoute] = useState({ page: 'shows', showId: null });
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { loaded } = useData();
-  const { topBar, dataInfo } = useShell();
+  const { topBar } = useShell();
 
-  if (!loaded) return null;
+  useEffect(() => {
+    if (loaded && !localStorage.getItem(ONBOARDING_KEY)) {
+      setShowOnboarding(true);
+    }
+  }, [loaded]);
+
+  const dismissOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setShowOnboarding(false);
+  };
+
+  if (!loaded) return <LoadingScreen />;
 
   const navigate = (page) => setRoute({ page, showId: null });
   const openShow = (showId) => setRoute({ page: 'shows', showId });
@@ -49,33 +54,32 @@ function Shell() {
     content = <VenuesPage />;
   }
 
-  const shortPath = dataInfo.path
-    ? dataInfo.path.replace(/^.*[\\/]AppData[\\/]Roaming[\\/]/i, '')
-    : 'producer-pro-data.json';
-
   return (
     <div className="app">
       <aside className="rail">
         <div className="rail-brand">
-          <div className="rail-wordmark">Producer Pro</div>
-          <div className="rail-tagline">Cabaret show manager</div>
+          <img
+            src={brand.wordmarkHorizontal()}
+            alt="Producer Pro"
+            className="rail-wordmark-img"
+            height={22}
+          />
         </div>
         <nav className="rail-nav">
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              className={'rail-item' + (route.page === item.id && !route.showId ? ' active' : route.page === 'shows' && item.id === 'shows' && route.showId ? ' active' : '')}
-              onClick={() => navigate(item.id)}
-            >
-              <span className="rail-dot" />
-              {item.label}
-            </button>
-          ))}
+          {NAV.map((item) => {
+            const active = route.page === item.id && (!route.showId || item.id === 'shows');
+            return (
+              <button
+                key={item.id}
+                className={'rail-item' + (active ? ' active' : '')}
+                onClick={() => navigate(item.id)}
+              >
+                <Icon src={icons.nav(item.id, active)} size={20} className="rail-nav-icon" alt="" />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
-        <div className="rail-footer">
-          <div className="data-path" title={dataInfo.path}>{shortPath}</div>
-          <div className="last-saved">{formatLastSaved(dataInfo.lastSaved)}</div>
-        </div>
       </aside>
 
       <div className="main-shell">
@@ -100,6 +104,7 @@ function Shell() {
           <div className="workspace">{content}</div>
         </div>
       </div>
+      {showOnboarding && <OnboardingModal onDismiss={dismissOnboarding} />}
     </div>
   );
 }

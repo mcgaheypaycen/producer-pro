@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+const resetOnboarding = process.argv.includes('--reset-onboarding');
+
 contextBridge.exposeInMainWorld('api', {
   list: (collection) => ipcRenderer.invoke('db:list', collection),
   save: (collection, item) => ipcRenderer.invoke('db:save', collection, item),
@@ -10,4 +12,5 @@ contextBridge.exposeInMainWorld('api', {
   openPath: (target) => ipcRenderer.invoke('shell:openPath', target),
   getDataInfo: () => ipcRenderer.invoke('db:info'),
   listFonts: () => ipcRenderer.invoke('fonts:list'),
+  resetOnboarding,
 });

@@ -2,6 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
 import { SearchInput, EmptyState, ConfirmDialog, useToast, money, formatDate, StatusBadge, formatRuntime, parseMinutes } from '../ui.jsx';
+import { illustrations, icons } from '../assets/index.js';
+import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
+import Icon from '../components/Icon.jsx';
 
 export default function ShowsPage({ onOpenShow }) {
   const { shows, venues, save, remove } = useData();
@@ -26,7 +29,7 @@ export default function ShowsPage({ onOpenShow }) {
 
   useTopBar(
     [{ label: 'Shows' }],
-    <button className="btn primary" onClick={newShow}>New show</button>
+    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={newShow}>New show</BtnWithIcon>
   );
 
   const filtered = useMemo(() => {
@@ -75,9 +78,10 @@ export default function ShowsPage({ onOpenShow }) {
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration={!query ? illustrations.emptyShows() : null}
           title={query ? 'No matches' : filter === 'closed' ? 'No closed shows' : 'No shows yet'}
           body={query ? 'Try a different search term.' : 'Create a show to start building your running order.'}
-          action={!query && filter !== 'closed' ? <button className="btn primary" onClick={newShow}>New show</button> : null}
+          action={!query && filter !== 'closed' ? <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={newShow}>New show</BtnWithIcon> : null}
         />
       ) : (
         <div className="card-grid">
@@ -94,13 +98,24 @@ export default function ShowsPage({ onOpenShow }) {
                 <div className="card-row">
                   <div>
                     <div className="card-title">{s.title || 'Untitled show'}</div>
-                    <div className="card-sub">{formatDate(s.dateLabel)}{venueName(s.venueId) ? ` · ${venueName(s.venueId)}` : ''}</div>
+                    <div className="card-sub">
+                      {s.dateLabel && (
+                        <span className="meta-chip">
+                          <Icon src={icons.action('calendar')} size={14} alt="" />
+                          {formatDate(s.dateLabel)}
+                        </span>
+                      )}
+                      {venueName(s.venueId) && (
+                        <span className="meta-chip">{venueName(s.venueId)}</span>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    className="icon-btn danger"
+                  <IconButton
+                    src={icons.action('delete')}
+                    className="danger"
                     title="Delete show"
                     onClick={(e) => { e.stopPropagation(); setDeleting(s); }}
-                  >✕</button>
+                  />
                 </div>
                 <div className="card-meta">
                   <div className="meta-line">
@@ -108,7 +123,10 @@ export default function ShowsPage({ onOpenShow }) {
                     <span className="data">{actCount} act{actCount === 1 ? '' : 's'}, {segCount} segment{segCount === 1 ? '' : 's'} · {runtime(s)}</span>
                   </div>
                   <div className="meta-line">
-                    <span className="meta-label">Tickets</span>
+                    <span className="meta-label">
+                      <Icon src={icons.action('ticket')} size={14} alt="" />
+                      Tickets
+                    </span>
                     <span className="data">{s.ticketPrice !== '' && s.ticketPrice != null ? money(s.ticketPrice) : '—'}</span>
                   </div>
                   {status === 'closed' && (

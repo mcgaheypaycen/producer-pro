@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useToast, money, moneySigned, PaymentChip } from '../ui.jsx';
+import { icons } from '../assets/index.js';
+import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
 import { PAYMENT_METHODS } from './PerformersPage.jsx';
 
 const sum = (arr) => (arr || []).reduce((t, x) => t + (Number(x.amount) || 0), 0);
@@ -134,7 +136,7 @@ export default function CloseoutPanel({ show, venueName, onSave, onChange, readO
                   next[i] = { ...row, amount: e.target.value };
                   patch('revenues')(next);
                 }} />
-                <button className="icon-btn danger" onClick={() => patch('revenues')(closeout.revenues.filter((_, j) => j !== i))}>✕</button>
+                <IconButton src={icons.action('delete')} className="danger" title="Remove" onClick={() => patch('revenues')(closeout.revenues.filter((_, j) => j !== i))} />
               </div>
             )
           ))}
@@ -172,7 +174,7 @@ export default function CloseoutPanel({ show, venueName, onSave, onChange, readO
                   next[i] = { ...row, amount: e.target.value };
                   patch('expenses')(next);
                 }} />
-                <button className="icon-btn danger" onClick={() => patch('expenses')(closeout.expenses.filter((_, j) => j !== i))}>✕</button>
+                <IconButton src={icons.action('delete')} className="danger" title="Remove" onClick={() => patch('expenses')(closeout.expenses.filter((_, j) => j !== i))} />
               </div>
             )
           ))}
@@ -214,7 +216,7 @@ export default function CloseoutPanel({ show, venueName, onSave, onChange, readO
                 }}>
                   {PAYMENT_METHODS.map((m) => <option key={m}>{m}</option>)}
                 </select>
-                <button className="icon-btn danger" onClick={() => patch('payouts')(closeout.payouts.filter((_, j) => j !== i))}>✕</button>
+                <IconButton src={icons.action('delete')} className="danger" title="Remove" onClick={() => patch('payouts')(closeout.payouts.filter((_, j) => j !== i))} />
               </div>
             )
           ))}
@@ -235,7 +237,7 @@ export default function CloseoutPanel({ show, venueName, onSave, onChange, readO
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
         {readOnly ? (
-          <button className="btn primary" onClick={exportCsv}>Export settlement</button>
+          <BtnWithIcon icon={icons.action('export')} className="btn primary" onClick={exportCsv}>Export settlement</BtnWithIcon>
         ) : (
           <>
             <button className="btn secondary" onClick={saveDraft}>Save progress</button>
