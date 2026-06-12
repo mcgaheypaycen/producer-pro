@@ -1,0 +1,6 @@
+<!-- P083 spinner 24 — 270° arc. CSS: @keyframes pp-spin{to{transform:rotate(360deg)}} animation:pp-spin 1.2s linear infinite; transform-origin:center -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <style>.pp-arc{transform-origin:12px 12px;animation:pp-spin 1.2s linear infinite}@keyframes pp-spin { to { transform: rotate(360deg); } }</style>
+  <path class="pp-arc" d="M12 3 A9 9 0 1 1 3 12" fill="none" stroke="#BD9550"
+        stroke-width="2" stroke-linecap="round"/>
+</svg>

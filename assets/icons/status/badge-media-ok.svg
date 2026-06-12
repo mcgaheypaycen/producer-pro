@@ -1,0 +1,8 @@
+<!-- P039 media-attached badge -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none"
+     stroke="#2F6F4F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="4.6" cy="11" rx="1.7" ry="1.4"/>
+  <path d="M6.3 11 V3.6"/>
+  <path d="M6.3 3.6 C8.4 4 9.4 5.1 9.2 6.8"/>
+  <path d="M9.4 11.6 L11 13.2 L14 9.8"/>
+</svg>

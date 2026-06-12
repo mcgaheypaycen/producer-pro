@@ -1,0 +1,7 @@
+<!-- P048 keyboard focus-ring spec -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -8 136 72">
+  <rect x="0" y="0" width="120" height="40" rx="10" fill="#F6F1E8" stroke="#E3D9C7" stroke-width="1"/>
+  <text x="60" y="25" text-anchor="middle" font-family="'Hanken Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="13" fill="#6B5D62">Focus</text>
+  <rect x="-2" y="-2" width="124" height="44" rx="12" fill="none" stroke="#BD9550" stroke-width="2"/>
+  <text x="60" y="56" text-anchor="middle" font-family="'Space Mono','Roboto Mono',ui-monospace,monospace" font-size="8" fill="#6B5D62">2px #BD9550 · offset 2px · radius 10</text>
+</svg>

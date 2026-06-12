@@ -1,0 +1,7 @@
+<!-- icon-warning — action icon (currentColor) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 4 L20.7 18.7 Q21.1 19.5 20.2 19.5 H3.8 Q2.9 19.5 3.3 18.7 Z"/>
+  <path d="M12 9.5 V13.8"/>
+  <circle cx="12" cy="16.4" r="0.6" fill="currentColor" stroke="none"/>
+</svg>

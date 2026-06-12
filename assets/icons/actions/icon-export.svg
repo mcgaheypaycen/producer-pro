@@ -1,0 +1,7 @@
+<!-- icon-export — action icon (currentColor) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 14 V18 Q5 19 6 19 H18 Q19 19 19 18 V14"/>
+  <path d="M12 15 V4"/>
+  <path d="M8 8 L12 4 L16 8"/>
+</svg>

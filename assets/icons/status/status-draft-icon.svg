@@ -1,0 +1,7 @@
+<!-- P036 draft status icon -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="#7E8A93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 4 H14 L18 8 V19 Q18 20 17 20 H7 Q6 20 6 19 V5 Q6 4 7 4 Z"/>
+  <path d="M14 4 V8 H18"/>
+  <path d="M9 12 H15 M9 15 H13"/>
+</svg>
