@@ -1,11 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
-import { Modal, Field, SearchInput, EmptyState, useToast, money, formatDate, StatusBadge, formatRuntime, parseMinutes, ConfirmDialog } from '../ui.jsx';
+import { Modal, Field, SearchInput, EmptyState, useToast, money, formatDate, StatusBadge, formatRuntime, parseMinutes } from '../ui.jsx';
 import { illustrations, icons } from '../assets/index.js';
 import Icon, { IconButton, BtnWithIcon } from '../components/Icon.jsx';
 import PackageProgressIcon from '../components/PackageProgressIcon.jsx';
-import { normalizeRunSheetOptions } from '../../shared/runSheetConfig.cjs';
+import { normalizeRunSheetOptions } from '../../shared/runSheetConfig.js';
+import { useAuth } from '../auth.jsx';
+import { RUN_SHEET_FONTS } from '../lib/fonts.js';
+import { createShowPackageInDrive } from '../lib/showPackage.js';
+import { exportSettlement, settlementFilename } from '../lib/closeoutCsv.js';
+import { toastDriveError } from '../lib/mediaUpload.js';
+import CloseoutFinalizeModal from '../components/CloseoutFinalizeModal.jsx';
+import SettlementExportModal from '../components/SettlementExportModal.jsx';
+import MediaPickerModal from '../components/MediaPickerModal.jsx';
 import { ActFormModal } from './ActsPage.jsx';
 import { VenueFormModal } from './VenuesPage.jsx';
 import CloseoutPanel from './CloseoutPanel.jsx';
@@ -39,7 +47,7 @@ function PackagePreviewDialog({ stats, onConfirm, onClose, busy, progressPhase }
       <div className="package-preview-header">
         <PackageProgressIcon phase={busy ? progressPhase : 'idle'} size={48} />
         <p style={{ color: 'var(--on-paper-muted)', margin: 0 }}>
-          Choose a destination folder next. The package will include:
+          The package folder will be created in your Google Drive. It will include:
         </p>
       </div>
       <div className="package-preview">
@@ -118,18 +126,18 @@ function AddActModal({ onPick, onClose }) {
 
 function SegmentModal({ segment, onSave, onClose }) {
   const [form, setForm] = useState({
-    title: '', length: '', notes: '', mediaPath: '', mediaName: '', ...segment,
+    title: '', length: '', notes: '', mediaFileId: '', mediaName: '', mediaLink: '', ...segment,
   });
-  const toast = useToast();
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const { ensureDriveFolderId } = useAuth();
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const pickMedia = async () => {
-    const file = await window.api.pickMedia();
-    if (!file) return;
+  const handleMediaSelected = (file) => {
     setForm((f) => ({
       ...f,
-      mediaPath: file.path,
+      mediaFileId: file.fileId,
       mediaName: file.name,
+      mediaLink: file.link,
       ...(file.length ? { length: file.length } : {}),
     }));
   };
@@ -166,12 +174,12 @@ function SegmentModal({ segment, onSave, onClose }) {
         <Field label="Notes" full>
           <textarea className="textarea" value={form.notes} onChange={set('notes')} placeholder="Talking points, cues, anything the run sheet should say…" />
         </Field>
-        <Field label="Media file" full>
+        <Field label="Media file" full helper="Choose from Google Drive or upload from your computer">
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="btn secondary sm" onClick={pickMedia} type="button">
-              {form.mediaPath ? 'Replace media' : 'Attach media'}
+            <button className="btn secondary sm" onClick={() => setShowMediaPicker(true)} type="button">
+              {form.mediaFileId ? 'Replace media' : 'Choose media'}
             </button>
-            {form.mediaPath ? (
+            {form.mediaFileId ? (
               <>
                 <span className="media-badge ok">
                   <Icon src={icons.status('badge-media-ok')} size={12} alt="" />
@@ -181,7 +189,7 @@ function SegmentModal({ segment, onSave, onClose }) {
                   src={icons.action('delete')}
                   className="danger"
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, mediaPath: '', mediaName: '' }))}
+                  onClick={() => setForm((f) => ({ ...f, mediaFileId: '', mediaName: '', mediaLink: '' }))}
                   title="Remove media"
                 />
               </>
@@ -191,6 +199,13 @@ function SegmentModal({ segment, onSave, onClose }) {
           </div>
         </Field>
       </div>
+      {showMediaPicker && (
+        <MediaPickerModal
+          getMediaFolderId={ensureDriveFolderId}
+          onClose={() => setShowMediaPicker(false)}
+          onSelect={handleMediaSelected}
+        />
+      )}
     </Modal>
   );
 }
@@ -198,9 +213,11 @@ function SegmentModal({ segment, onSave, onClose }) {
 export default function ShowEditor({ showId, onBack }) {
   const { shows, acts, performers, venues, save } = useData();
   const toast = useToast();
+  const { ensureDriveFolderId, signIn } = useAuth();
   const show = shows.find((s) => s.id === showId);
   const [zone, setZone] = useState(() => (show?.status === 'closed' ? 'closeout' : 'order'));
   const [addingAct, setAddingAct] = useState(false);
+  const [mediaPickTarget, setMediaPickTarget] = useState(null);
   const [addingSegment, setAddingSegment] = useState(false);
   const [editingSegmentKey, setEditingSegmentKey] = useState(null);
   const [editingActId, setEditingActId] = useState(null);
@@ -209,9 +226,10 @@ export default function ShowEditor({ showId, onBack }) {
   const [packagePhase, setPackagePhase] = useState('idle');
   const [packagePreview, setPackagePreview] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [closingOut, setClosingOut] = useState(false);
+  const [showSettlementExport, setShowSettlementExport] = useState(false);
   const [closeoutDraft, setCloseoutDraft] = useState(null);
   const [runSheetOptions, setRunSheetOptions] = useState(() => normalizeRunSheetOptions(show?.runSheet));
-  const [systemFonts, setSystemFonts] = useState([]);
   const runSheetSaveTimer = useRef(null);
 
   useEffect(() => {
@@ -232,15 +250,6 @@ export default function ShowEditor({ showId, onBack }) {
   const status = show?.status || 'draft';
   const venueNameForBar = show ? (venues.find((v) => v.id === show.venueId)?.name || '') : '';
 
-  useEffect(() => {
-    (async () => {
-      if (window.api?.listFonts) {
-        const fonts = await window.api.listFonts();
-        setSystemFonts(fonts);
-      }
-    })();
-  }, []);
-
   const persistRunSheet = useCallback((opts) => {
     if (!show || closed) return;
     clearTimeout(runSheetSaveTimer.current);
@@ -257,12 +266,7 @@ export default function ShowEditor({ showId, onBack }) {
   let primaryAction = null;
   if (show) {
     if (closed) {
-      primaryAction = <BtnWithIcon icon={icons.action('export')} className="btn primary" onClick={async () => {
-        const result = await window.api.exportCsv({ show: { ...show, venueName: venueNameForBar }, closeout: show.closeout });
-        if (result?.canceled) return;
-        if (result?.error) toast('Export failed', result.error, 'error');
-        else toast('Settlement exported', result.filePath);
-      }}>Export settlement</BtnWithIcon>;
+      primaryAction = <BtnWithIcon icon={icons.action('export')} className="btn primary" onClick={() => setShowSettlementExport(true)}>Export settlement</BtnWithIcon>;
     } else if (zone === 'closeout') {
       primaryAction = <button className="btn primary" onClick={() => setConfirmClose(true)}>Close out</button>;
     } else {
@@ -307,7 +311,7 @@ export default function ShowEditor({ showId, onBack }) {
       length: act?.length || '',
       lightingNotes: act?.lightingNotes || '',
       stageNotes: act?.stageNotes || '',
-      mediaPath: act?.mediaPath || '',
+      mediaFileId: act?.mediaFileId || '',
       mediaName: act?.mediaName || '',
     };
   };
@@ -315,12 +319,12 @@ export default function ShowEditor({ showId, onBack }) {
   const resolved = lineup.map(resolveEntry);
   const actEntries = resolved.filter((e) => e.type === 'act');
   const totalMinutes = resolved.reduce((t, e) => t + parseMinutes(e.length), 0);
-  const mediaAttached = resolved.filter((e) => e.mediaPath).length;
+  const mediaAttached = resolved.filter((e) => e.mediaFileId).length;
   const venueName = venues.find((v) => v.id === show.venueId)?.name || '';
 
   const packageStats = {
-    mediaCount: resolved.filter((e) => e.mediaPath).length,
-    missingCount: actEntries.filter((e) => !e.mediaPath).length,
+    mediaCount: resolved.filter((e) => e.mediaFileId).length,
+    missingCount: actEntries.filter((e) => !e.mediaFileId).length,
   };
 
   const reorderLineup = (from, to) => {
@@ -346,12 +350,17 @@ export default function ShowEditor({ showId, onBack }) {
     });
   };
 
-  const attachMedia = async (entry) => {
-    const file = await window.api.pickMedia();
-    if (!file) return;
+  const attachMedia = (entry) => {
+    setMediaPickTarget(entry);
+  };
+
+  const handleLineupMediaSelected = async (file) => {
+    const entry = mediaPickTarget;
+    if (!entry || !file) return;
+    setMediaPickTarget(null);
 
     if (entry.type === 'act' && entry.act) {
-      const patch = { ...entry.act, mediaPath: file.path, mediaName: file.name };
+      const patch = { ...entry.act, mediaFileId: file.fileId, mediaName: file.name, mediaLink: file.link };
       if (file.length) patch.length = file.length;
       await save('acts', patch);
       toast(
@@ -365,7 +374,7 @@ export default function ShowEditor({ showId, onBack }) {
       const idx = lineup.findIndex((e) => e.key === entry.key);
       if (idx < 0) return;
       const next = lineup.slice();
-      const seg = { ...next[idx], mediaPath: file.path, mediaName: file.name };
+      const seg = { ...next[idx], mediaFileId: file.fileId, mediaName: file.name, mediaLink: file.link };
       if (file.length) seg.length = file.length;
       next[idx] = seg;
       update({ lineup: next });
@@ -384,7 +393,8 @@ export default function ShowEditor({ showId, onBack }) {
     setPackaging(true);
     setPackagePhase('copying');
     try {
-      const payload = {
+      const appFolderId = await ensureDriveFolderId();
+      const result = await createShowPackageInDrive({
         show: {
           title: show.title || 'Untitled show',
           dateLabel: formatDate(show.dateLabel),
@@ -393,7 +403,7 @@ export default function ShowEditor({ showId, onBack }) {
         },
         lineup: resolved.map((e) =>
           e.type === 'segment'
-            ? { type: 'segment', title: e.title, notes: e.notes, length: e.length, mediaPath: e.mediaPath }
+            ? { type: 'segment', title: e.title, notes: e.notes, length: e.length, mediaFileId: e.mediaFileId, mediaName: e.mediaName }
             : {
                 type: 'act',
                 performerName: e.performerName,
@@ -403,45 +413,81 @@ export default function ShowEditor({ showId, onBack }) {
                 length: e.length,
                 lightingNotes: e.lightingNotes,
                 stageNotes: e.stageNotes,
-                mediaPath: e.mediaPath,
+                mediaFileId: e.mediaFileId,
+                mediaName: e.mediaName,
               }
         ),
         runSheet: runSheetOptions,
-      };
-      const result = await window.api.createShowPackage(payload);
-      setPackagePreview(false);
-      if (result.canceled) return;
-      if (result.error) {
-        toast('Package failed', result.error, 'error');
-        return;
-      }
-      setPackagePhase('complete');
-      await update({ status: closed ? 'closed' : 'packaged', folderPath: result.folderPath, runSheet: runSheetOptions });
-      const missingNote = result.missing?.length ? ` ${result.missing.length} file(s) missing on disk.` : '';
-      toast('Package ready', `${result.copied.length} media file(s) + run sheet.${missingNote}`, 'success', {
-        label: 'Reveal in folder',
-        icon: icons.action('folder-open'),
-        onClick: () => window.api.openPath(result.folderPath),
+        appFolderId,
       });
+      setPackagePreview(false);
+      setPackagePhase('complete');
+      await update({
+        status: closed ? 'closed' : 'packaged',
+        driveFolderId: result.folderId,
+        driveFolderLink: result.folderLink,
+        driveFolderName: result.folderName,
+        runSheet: runSheetOptions,
+      });
+      const missingNote = result.missing?.length ? ` ${result.missing.length} file(s) could not be copied.` : '';
+      toast('Package ready', `${result.copied.length} media file(s) + run sheet in your Google Drive.${missingNote}`, 'success', result.folderLink ? {
+        label: 'Open in Google Drive',
+        icon: icons.action('folder-open'),
+        onClick: () => window.open(result.folderLink, '_blank', 'noopener'),
+      } : undefined);
+    } catch (err) {
+      setPackagePreview(false);
+      toastDriveError(toast, err, signIn);
     } finally {
       setPackaging(false);
     }
   };
 
-  const finalizeCloseout = async () => {
+  const finalizeCloseout = async (exportMode) => {
     const data = closeoutDraft || show.closeout;
     if (!data) {
       toast('Nothing to close out', 'Enter settlement figures first.', 'error');
       setConfirmClose(false);
       return;
     }
-    await update({
-      closeout: { ...data, closedAt: new Date().toISOString() },
-      status: 'closed',
-    });
-    setConfirmClose(false);
-    toast('Show closed out', `${show.title || 'Show'} is settled and archived.`);
-    setZone('closeout');
+    setClosingOut(true);
+    try {
+      const closedAt = new Date().toISOString();
+      const closeoutData = { ...data, closedAt };
+      await update({
+        closeout: closeoutData,
+        status: 'closed',
+      });
+      setConfirmClose(false);
+      toast('Show closed out', `${show.title || 'Show'} is settled and archived.`);
+
+      if (exportMode) {
+        const performersById = Object.fromEntries(performers.map((p) => [p.id, p]));
+        try {
+          const result = await exportSettlement(
+            { ...show, venueName: venueNameForBar },
+            closeoutData,
+            performersById,
+            { mode: exportMode, folderId: show.driveFolderId, getAppFolderId: ensureDriveFolderId },
+          );
+          const filename = settlementFilename(show);
+          if (result.webViewLink) {
+            toast('Settlement exported', filename, 'success', {
+              label: 'Open in Drive',
+              icon: icons.action('folder-open'),
+              onClick: () => window.open(result.webViewLink, '_blank', 'noopener'),
+            });
+          } else {
+            toast('Settlement exported', filename);
+          }
+        } catch (err) {
+          toastDriveError(toast, err, signIn);
+        }
+      }
+      setZone('closeout');
+    } finally {
+      setClosingOut(false);
+    }
   };
 
   const editingSegmentIdx = lineup.findIndex((e) => e.key === editingSegmentKey);
@@ -458,9 +504,9 @@ export default function ShowEditor({ showId, onBack }) {
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
           <StatusBadge status={status} />
-          {show.folderPath && (
-            <BtnWithIcon icon={icons.action('folder-open')} className="btn ghost sm" onClick={() => window.api.openPath(show.folderPath)}>
-              Reveal in folder
+          {show.driveFolderLink && (
+            <BtnWithIcon icon={icons.action('folder-open')} className="btn ghost sm" onClick={() => window.open(show.driveFolderLink, '_blank', 'noopener')}>
+              Open in Google Drive
             </BtnWithIcon>
           )}
         </div>
@@ -515,13 +561,18 @@ export default function ShowEditor({ showId, onBack }) {
         <div>
           <h2 className="h2" style={{ marginBottom: 8 }}>Show package</h2>
           <p style={{ color: 'var(--on-paper-muted)', marginBottom: 20, maxWidth: 560 }}>
-            Generates a folder with media files named by position, performer, and act — plus an RTF run sheet using your typography settings.
+            Generates a folder in your Google Drive with media files named by position, performer, and act — plus an RTF run sheet using your typography settings.
           </p>
           <div className="summary-stat"><span className="stat-label">Media ready</span><span className="stat-value">{mediaAttached} / {resolved.length}</span></div>
           <div className="summary-stat"><span className="stat-label">Running order</span><span className="stat-value">{resolved.length} entries</span></div>
           <div className="summary-stat"><span className="stat-label">Est. runtime</span><span className="stat-value">{formatRuntime(totalMinutes)}</span></div>
-          {show.folderPath && (
-            <div className="summary-stat"><span className="stat-label">Folder</span><span style={{ fontSize: 12, wordBreak: 'break-all' }}>{show.folderPath}</span></div>
+          {show.driveFolderLink && (
+            <div className="summary-stat">
+              <span className="stat-label">Drive folder</span>
+              <a href={show.driveFolderLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, wordBreak: 'break-all', color: 'var(--wine-600)' }}>
+                {show.driveFolderName || 'Open in Google Drive'}
+              </a>
+            </div>
           )}
           {!closed && (
             <BtnWithIcon icon={icons.action('export')} className="btn primary" style={{ marginTop: 20 }} onClick={() => setPackagePreview(true)} disabled={packaging}>
@@ -584,7 +635,7 @@ export default function ShowEditor({ showId, onBack }) {
               <RunSheetStylePanel
                 options={runSheetOptions}
                 onChange={handleRunSheetChange}
-                fonts={systemFonts}
+                fonts={RUN_SHEET_FONTS}
                 disabled={closed}
               />
             </div>
@@ -632,12 +683,28 @@ export default function ShowEditor({ showId, onBack }) {
       )}
 
       {confirmClose && (
-        <ConfirmDialog
-          title="Close out this show?"
-          body="This finalizes the settlement and archives the show. You'll still be able to view it and export the CSV."
-          confirmLabel="Close out"
+        <CloseoutFinalizeModal
+          showTitle={show.title}
+          busy={closingOut}
           onCancel={() => setConfirmClose(false)}
           onConfirm={finalizeCloseout}
+        />
+      )}
+
+      {showSettlementExport && show.closeout && (
+        <SettlementExportModal
+          show={{ ...show, venueName: venueNameForBar }}
+          closeout={show.closeout}
+          performersById={Object.fromEntries(performers.map((p) => [p.id, p]))}
+          onClose={() => setShowSettlementExport(false)}
+        />
+      )}
+
+      {mediaPickTarget && (
+        <MediaPickerModal
+          getMediaFolderId={ensureDriveFolderId}
+          onClose={() => setMediaPickTarget(null)}
+          onSelect={handleLineupMediaSelected}
         />
       )}
     </div>

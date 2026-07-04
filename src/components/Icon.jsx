@@ -1,17 +1,34 @@
 import React from 'react';
 import { asset } from '../assets/index.js';
 
-export default function Icon({ src, path, size = 16, className = '', alt = '' }) {
+/**
+ * Renders an SVG icon tinted by `currentColor` using a CSS mask, so icons
+ * inherit the text color of their context. Pass `img` for multi-color art
+ * that should render as-is.
+ */
+export default function Icon({ src, path, size = 16, className = '', alt = '', img = false }) {
   const url = src || (path ? asset(path) : null);
   if (!url) return null;
+  if (img) {
+    return (
+      <img
+        src={url}
+        alt={alt}
+        className={`icon-img ${className}`.trim()}
+        width={size}
+        height={size}
+        draggable={false}
+      />
+    );
+  }
+  const mask = `url("${url}")`;
   return (
-    <img
-      src={url}
-      alt={alt}
-      className={`icon-img ${className}`.trim()}
-      width={size}
-      height={size}
-      draggable={false}
+    <span
+      role={alt ? 'img' : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : true}
+      className={`icon-mask ${className}`.trim()}
+      style={{ width: size, height: size, WebkitMaskImage: mask, maskImage: mask }}
     />
   );
 }

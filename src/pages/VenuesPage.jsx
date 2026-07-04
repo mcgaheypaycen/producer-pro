@@ -4,6 +4,7 @@ import { useTopBar } from '../shell.jsx';
 import { Drawer, Field, SearchInput, EmptyState, ConfirmDialog, useToast } from '../ui.jsx';
 import { illustrations, icons } from '../assets/index.js';
 import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
+import AddToShowModal from '../components/AddToShowModal.jsx';
 
 export function VenueForm({ venue, onClose, onSaved }) {
   const { save } = useData();
@@ -66,12 +67,13 @@ export function VenueForm({ venue, onClose, onSaved }) {
 
 export const VenueFormModal = VenueForm;
 
-export default function VenuesPage() {
+export default function VenuesPage({ onOpenShow }) {
   const { venues, shows, remove } = useData();
   const toast = useToast();
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [addingToShow, setAddingToShow] = useState(null);
 
   const openAdd = () => setEditing({});
 
@@ -136,7 +138,10 @@ export default function VenuesPage() {
                     <td className="mono">{v.capacity || '—'}</td>
                     <td className="mono">{showCount}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(v)} />
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <button className="btn ghost sm" title="Set as a show's venue" onClick={() => setAddingToShow(v)}>Add to show</button>
+                        <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(v)} />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -147,6 +152,17 @@ export default function VenuesPage() {
       )}
 
       {editing && <VenueForm venue={editing.id ? editing : null} onClose={() => setEditing(null)} />}
+
+      {addingToShow && (
+        <AddToShowModal
+          title="Set venue on a show"
+          description={<>Make <strong>{addingToShow.name}</strong> the venue of an open show, or start a new show there.</>}
+          entityLabel={addingToShow.name}
+          applyToShow={(show) => ({ ...show, venueId: addingToShow.id })}
+          onOpenShow={onOpenShow}
+          onClose={() => setAddingToShow(null)}
+        />
+      )}
 
       {deleting && (
         <ConfirmDialog

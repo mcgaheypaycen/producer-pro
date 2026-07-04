@@ -1,115 +1,39 @@
 import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
-import { Modal, Field, SearchInput, EmptyState, ConfirmDialog, useToast, formatDate, StatusBadge } from '../ui.jsx';
+import { Modal, Field, SearchInput, EmptyState, ConfirmDialog, useToast } from '../ui.jsx';
 import { illustrations, icons } from '../assets/index.js';
 import Icon, { IconButton, BtnWithIcon } from '../components/Icon.jsx';
 import { PerformerForm } from './PerformersPage.jsx';
-
-function newLineupKey() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-function AddActToShowModal({ act, onClose }) {
-  const { shows, performers, venues, save } = useData();
-  const toast = useToast();
-  const [query, setQuery] = useState('');
-
-  const venueName = (id) => venues.find((v) => v.id === id)?.name || '';
-
-  const openShows = useMemo(() => {
-    const q = query.toLowerCase();
-    return shows
-      .filter((s) => (s.status || 'draft') !== 'closed')
-      .filter((s) => !q || [s.title, venueName(s.venueId), s.dateLabel].some((v) => (v || '').toLowerCase().includes(q)))
-      .sort((a, b) => (b.dateLabel || '').localeCompare(a.dateLabel || '') || (a.title || '').localeCompare(b.title || ''));
-  }, [shows, venues, query]);
-
-  const addToShow = async (show) => {
-    const performer = performers.find((p) => p.id === act.performerId);
-    const lineup = show.lineup || [];
-    await save('shows', {
-      ...show,
-      lineup: [
-        ...lineup,
-        {
-          key: newLineupKey(),
-          type: 'act',
-          actId: act.id,
-          performerId: act.performerId,
-          performerName: performer?.stageName || '',
-          actName: act.name,
-        },
-      ],
-    });
-    toast('Added to show', `${act.name} → ${show.title || 'Untitled show'}`);
-    onClose();
-  };
-
-  return (
-    <Modal
-      title="Add to show"
-      onClose={onClose}
-      footer={<button className="btn ghost" onClick={onClose}>Cancel</button>}
-    >
-      <p style={{ color: 'var(--on-paper-muted)', marginBottom: 12, fontSize: 14 }}>
-        Add <strong>{act.name}</strong> to the running order of an open show.
-      </p>
-      <div style={{ marginBottom: 12 }}>
-        <SearchInput value={query} onChange={setQuery} placeholder="Search open shows…" />
-      </div>
-      {openShows.length === 0 ? (
-        <div style={{ color: 'var(--on-paper-muted)', padding: '24px 4px', textAlign: 'center' }}>
-          {shows.some((s) => (s.status || 'draft') !== 'closed')
-            ? 'No open shows match your search.'
-            : 'No open shows. Create a show or reopen a draft first.'}
-        </div>
-      ) : (
-        <div className="picker-list">
-          {openShows.map((s) => {
-            const actCount = (s.lineup || []).filter((e) => e.type === 'act').length;
-            return (
-              <button key={s.id} className="picker-item" onClick={() => addToShow(s)}>
-                <div>
-                  <div className="picker-name">{s.title || 'Untitled show'}</div>
-                  <div className="picker-sub">
-                    {[s.dateLabel ? formatDate(s.dateLabel) : '', venueName(s.venueId), `${actCount} act${actCount === 1 ? '' : 's'}`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
-                </div>
-                <StatusBadge status={s.status || 'draft'} />
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </Modal>
-  );
-}
+import { useAuth } from '../auth.jsx';
+import MediaPickerModal from '../components/MediaPickerModal.jsx';
+import AddToShowModal, { actLineupEntry } from '../components/AddToShowModal.jsx';
+import ImportGoogleFormButton from '../components/ImportGoogleFormButton.jsx';
 
 export function ActFormModal({ act, defaultPerformerId, onClose, onSaved }) {
   const { performers, save } = useData();
   const toast = useToast();
+  const { ensureDriveFolderId } = useAuth();
   const [addingPerformer, setAddingPerformer] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [form, setForm] = useState({
     performerId: defaultPerformerId || '',
     name: '', aesthetic: '', length: '', tagline: '', lightingNotes: '', stageNotes: '',
-    mediaPath: '', mediaName: '',
+    mediaFileId: '', mediaName: '', mediaLink: '',
     ...act,
   });
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const pickMedia = async () => {
-    const file = await window.api.pickMedia();
-    if (!file) return;
+  const handleMediaSelected = (file) => {
     setForm((f) => ({
       ...f,
-      mediaPath: file.path,
+      mediaFileId: file.fileId,
       mediaName: file.name,
+      mediaLink: file.link,
       ...(file.length ? { length: file.length } : {}),
     }));
+    toast('Media attached', file.name);
   };
 
   const submit = async () => {
@@ -169,18 +93,18 @@ export function ActFormModal({ act, defaultPerformerId, onClose, onSaved }) {
         <Field label="Stage notes" full>
           <textarea className="textarea" value={form.stageNotes} onChange={set('stageNotes')} placeholder="Chair set center stage…" />
         </Field>
-        <Field label="Media file" full>
+        <Field label="Media file" full helper="Choose from Google Drive or upload from your computer">
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="btn secondary sm" onClick={pickMedia} type="button">
-              {form.mediaPath ? 'Replace media' : 'Upload media'}
+            <button className="btn secondary sm" onClick={() => setShowMediaPicker(true)} type="button">
+              {form.mediaFileId ? 'Replace media' : 'Choose media'}
             </button>
-            {form.mediaPath ? (
+            {form.mediaFileId ? (
               <>
                 <span className={'media-badge ok'}>
                   <Icon src={icons.status('badge-media-ok')} size={12} alt="" />
                   {form.mediaName}
                 </span>
-                <IconButton src={icons.action('delete')} className="danger" type="button" onClick={() => setForm((f) => ({ ...f, mediaPath: '', mediaName: '' }))} title="Remove media" />
+                <IconButton src={icons.action('delete')} className="danger" type="button" onClick={() => setForm((f) => ({ ...f, mediaFileId: '', mediaName: '', mediaLink: '' }))} title="Remove media" />
               </>
             ) : (
               <span style={{ color: 'var(--on-paper-muted)', fontSize: 13 }}>No file attached</span>
@@ -188,6 +112,14 @@ export function ActFormModal({ act, defaultPerformerId, onClose, onSaved }) {
           </div>
         </Field>
       </div>
+
+      {showMediaPicker && (
+        <MediaPickerModal
+          getMediaFolderId={ensureDriveFolderId}
+          onClose={() => setShowMediaPicker(false)}
+          onSelect={handleMediaSelected}
+        />
+      )}
 
       {addingPerformer && (
         <PerformerForm
@@ -202,7 +134,7 @@ export function ActFormModal({ act, defaultPerformerId, onClose, onSaved }) {
   );
 }
 
-export default function ActsPage() {
+export default function ActsPage({ onOpenShow }) {
   const { acts, performers, remove } = useData();
   const toast = useToast();
   const [query, setQuery] = useState('');
@@ -214,7 +146,10 @@ export default function ActsPage() {
 
   useTopBar(
     [{ label: 'Acts' }],
-    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add act</BtnWithIcon>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <ImportGoogleFormButton />
+      <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add act</BtnWithIcon>
+    </div>
   );
 
   const performerName = (id) => performers.find((p) => p.id === id)?.stageName || 'Unknown performer';
@@ -256,6 +191,9 @@ export default function ActsPage() {
                   <div className="card-title">{a.name}</div>
                   <div className="card-sub" style={{ color: 'var(--wine-600)', fontWeight: 600, fontStyle: 'normal' }}>
                     {performerName(a.performerId)}
+                    {a.versionLabel && (
+                      <span className="act-version-badge" style={{ marginLeft: 8 }}>{a.versionLabel}</span>
+                    )}
                   </div>
                 </div>
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>
@@ -268,9 +206,9 @@ export default function ActsPage() {
                 <div className="meta-line"><span className="meta-label">Aesthetic</span>{a.aesthetic || '—'}</div>
                 <div className="meta-line"><span className="meta-label">Length</span><span className="data">{a.length || '—'}</span></div>
               </div>
-              <span className={'media-badge ' + (a.mediaPath ? 'ok' : 'missing')} style={{ marginTop: 10, display: 'inline-flex' }}>
-                <Icon src={icons.status(a.mediaPath ? 'badge-media-ok' : 'badge-media-missing')} size={12} alt="" />
-                {a.mediaPath ? <>media · {a.mediaName}</> : 'no media'}
+              <span className={'media-badge ' + (a.mediaFileId ? 'ok' : 'missing')} style={{ marginTop: 10, display: 'inline-flex' }}>
+                <Icon src={icons.status(a.mediaFileId ? 'badge-media-ok' : 'badge-media-missing')} size={12} alt="" />
+                {a.mediaFileId ? <>media · {a.mediaName}</> : 'no media'}
               </span>
             </div>
           ))}
@@ -280,7 +218,17 @@ export default function ActsPage() {
       {editing && <ActFormModal act={editing.id ? editing : null} onClose={() => setEditing(null)} />}
 
       {addingToShow && (
-        <AddActToShowModal act={addingToShow} onClose={() => setAddingToShow(null)} />
+        <AddToShowModal
+          title="Add to show"
+          description={<>Add <strong>{addingToShow.name}</strong> to the running order of an open show, or start a new one.</>}
+          entityLabel={addingToShow.name}
+          applyToShow={(show) => ({
+            ...show,
+            lineup: [...(show.lineup || []), actLineupEntry(addingToShow, performers)],
+          })}
+          onOpenShow={onOpenShow}
+          onClose={() => setAddingToShow(null)}
+        />
       )}
 
       {deleting && (

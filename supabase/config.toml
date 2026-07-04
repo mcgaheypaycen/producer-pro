@@ -1,0 +1,16 @@
+# Supabase CLI configuration. Only function-level overrides are declared here;
+# run `supabase init` locally if you want the full local-dev stack config.
+
+[functions.stripe-webhook]
+# Stripe calls this endpoint directly; it authenticates via webhook signature,
+# not a Supabase JWT.
+verify_jwt = false
+
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.create-portal-session]
+verify_jwt = true
+
+[functions.google-refresh-token]
+verify_jwt = true

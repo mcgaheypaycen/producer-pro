@@ -5,7 +5,7 @@ import { BtnWithIcon } from './Icon.jsx';
 
 const STEPS = [
   { title: 'Build', body: 'Add performers, acts, and segments to your running order.' },
-  { title: 'Package', body: 'Export renamed media files and a styled RTF run sheet to a show folder.' },
+  { title: 'Package', body: 'Export renamed media files and a styled RTF run sheet to a show folder in your Google Drive.' },
   { title: 'Close out', body: 'Settle the night — track revenue, expenses, payouts, and export your ledger.' },
 ];
 

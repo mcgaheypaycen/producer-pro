@@ -1,49 +1,99 @@
 # Producer Pro
 
-A standalone Windows desktop app for producers of cabaret-style shows. Manage your roster of performers, venues, and acts; build show lineups; generate show packages (media files + RTF run sheet); and settle the books when the curtain falls.
+A subscription web app for producers of cabaret-style shows. Manage your roster of performers, venues, and acts; build show lineups; generate show packages (media files + RTF run sheet) straight into your Google Drive; and settle the books when the curtain falls.
 
 ## Features
 
-- **Shows** — Create a show, pick the venue, set the ticket price, and build the running order from performer acts and segments (host welcome, games, announcements, etc.). Reorder with one click.
-- **Acts library** — Each act stores performer, aesthetic, length, lighting notes, stage notes, tagline, and an attached media file (audio or video). Acts are reusable across shows and searchable.
+- **Shows** — Create a show, pick the venue, set the ticket price, and build the running order from performer acts and segments (host welcome, games, announcements, etc.). Drag to reorder.
+- **Acts library** — Each act stores performer, aesthetic, length, lighting notes, stage notes, tagline, and an attached media file (audio, video, or image) uploaded to your Google Drive. Acts are reusable across shows and searchable.
 - **Performers roster** — Stage name, legal name, email, phone, payment method, and payment handle (Venmo, CashApp, PayPal, etc.). Searchable.
 - **Venues** — Name, address, contact, capacity, notes. Searchable.
-- **Create Show** — One click builds a folder containing every media file named `[POSITION IN SHOW] [PERFORMER NAME] [ACT NAME]` plus an RTF run sheet listing every act and segment in order with performer name, act name, tagline, lighting notes, and stage notes.
-- **Close out** — After the show, record money in by source (Venmo, Eventbrite, door cash…), expenses and what they were spent on, what each performer was paid and how, and tickets sold. Live profit math, then close the show out.
-- **Past shows** — Revisit any closed show and export a settlement CSV (who was paid what, expenses, ticket sales, revenue, net profit).
+- **Show packages** — One click builds a folder in your Google Drive containing every media file named `[POSITION IN SHOW] [PERFORMER NAME] [ACT NAME]` plus a styled RTF run sheet. Media is copied server-side inside Drive — no re-uploading.
+- **Close out** — After the show, record money in by source, expenses, performer payouts, and tickets sold. Live profit math, then close the show out.
+- **Past shows** — Revisit any closed show and export a settlement CSV.
+- **Desktop import** — Moving from the old desktop app? Import your `producer-pro-data.json` from the account menu.
 
-## Running the packaged app
+## Architecture
 
-Grab `release/ProducerPro.exe` — it's a portable, standalone executable. Double-click to run; no install needed. Your data is stored in `%APPDATA%/producer-pro/producer-pro-data.json`.
+| Concern | Service |
+|---|---|
+| Frontend | React 18 + Vite, deployed as a static site (Vercel) |
+| Auth | Supabase Auth with Google sign-in |
+| Database | Supabase Postgres (JSONB documents, row-level security per user) |
+| File storage | The user's own Google Drive (`drive.file` scope — app-created files only) |
+| Billing | Stripe subscription (single plan + free trial) via Supabase Edge Functions |
 
-## Development
+Structured data (performers, venues, acts, shows) lives in Postgres and is tiny.
+Heavy files (act media, show packages) live in each user's own Drive, so storage
+costs nothing regardless of user count.
+
+## Local development
 
 Requires Node.js 18+.
 
 ```bash
-npm install        # install dependencies
-npm start          # build the UI and launch the desktop app
-npm run dev        # vite dev server (browser preview with mock data)
-npm run dist       # build the portable exe into release/
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-## Tech stack
+Without a `.env` file the app runs in **demo mode**: no sign-in, data persisted
+to localStorage, Drive/billing simulated. To run against real services, copy
+`.env.example` to `.env` and fill in your Supabase project values.
 
-- [Electron](https://www.electronjs.org/) — desktop shell, file dialogs, file system access
-- [React 18](https://react.dev/) + [Vite](https://vitejs.dev/) — UI
-- JSON file storage with atomic writes (no database server needed)
-- [electron-builder](https://www.electron.build/) — portable exe packaging
+## Production setup (one time)
+
+### 1. Supabase
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Apply the schema: `supabase db push` (or paste `supabase/migrations/20260701000000_init.sql` into the SQL editor).
+3. Copy the project URL and anon key into your frontend env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+
+### 2. Google OAuth (sign-in + Drive)
+
+1. In [Google Cloud Console](https://console.cloud.google.com), create an OAuth client (web application). Add your Supabase callback URL (`https://YOUR-REF.supabase.co/auth/v1/callback`) as an authorized redirect URI.
+2. Enable the **Google Drive API** for the project, and add the `.../auth/drive.file` scope on the OAuth consent screen.
+3. In Supabase → Authentication → Providers → Google, paste the client ID and secret.
+4. Before public launch, submit the app for Google OAuth verification (the `drive.file` scope needs a brief review; test users work immediately).
+
+### 3. Stripe
+
+1. Create a product with one recurring price; note the price ID.
+2. Deploy the edge functions:
+
+```bash
+supabase functions deploy create-checkout-session create-portal-session stripe-webhook google-refresh-token
+```
+
+3. Set function secrets:
+
+```bash
+supabase secrets set STRIPE_SECRET_KEY=sk_... STRIPE_PRICE_ID=price_... \
+  TRIAL_DAYS=14 SITE_URL=https://your-app.example \
+  GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=...
+```
+
+4. Add a Stripe webhook endpoint pointing at
+   `https://YOUR-REF.supabase.co/functions/v1/stripe-webhook` with events
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted` — then set
+   `STRIPE_WEBHOOK_SECRET` as a function secret too.
+
+### 4. Deploy the frontend (Vercel)
+
+1. Import the repo into [Vercel](https://vercel.com) — it auto-detects Vite (`npm run build`, output `dist/`).
+2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` env vars.
+3. Add the deployed URL to Supabase → Authentication → URL Configuration (site URL + redirect URLs), and set it as `SITE_URL` in the function secrets.
 
 ## Project layout
 
 ```
-electron/        main process: window, IPC, storage, show package + CSV generation
-  main.js
-  preload.js     context-isolated bridge exposed as window.api
-  store.js       JSON collection store (performers, venues, acts, shows)
-  showExport.js  show folder + RTF run sheet + settlement CSV builders
-src/             React renderer
-  pages/         Shows list, Show editor, Close-out, Performers, Acts, Venues
-  ui.jsx         shared components (modals, toasts, fields)
-  data.jsx       data context over the IPC bridge
+supabase/
+  migrations/      Postgres schema: profiles + 4 collections, RLS policies
+  functions/       Deno edge functions: Stripe checkout/portal/webhook, Google token refresh
+src/               React app
+  auth.jsx         session + profile + subscription gating context
+  lib/             supabase client, data API, Google Drive, RTF/CSV builders, billing
+  pages/           Shows, Show editor, Close-out, Performers, Acts, Venues, Login, Paywall
+  components/      shared UI, account menu, desktop-data importer
+shared/            run sheet typography config (used by UI + RTF builder)
 ```

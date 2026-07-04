@@ -1,7 +1,0 @@
-<!-- nav-shows nav icon — active state (identical geometry) -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-     stroke="#D9B879" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="4" y="3.5" width="16" height="17" rx="2"/>
-  <path d="M12.00 5.80 L13.06 8.54 L15.99 8.70 L13.71 10.56 L14.47 13.40 L12.00 11.80 L9.53 13.40 L10.29 10.56 L8.01 8.70 L10.94 8.54 Z" stroke-linejoin="round"/>
-  <path d="M8.5 16.5 H15.5"/>
-</svg>

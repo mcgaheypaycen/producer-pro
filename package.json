@@ -1,78 +1,27 @@
 {
   "name": "producer-pro",
   "productName": "Producer Pro",
-  "version": "1.0.0",
-  "description": "Show production manager for cabaret producers",
-  "main": "electron/main.js",
+  "version": "2.0.0",
+  "description": "Show production manager for cabaret producers — SaaS web app",
+  "private": true,
+  "type": "module",
   "author": "Producer Pro",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build:renderer": "vite build",
-    "start": "npm run build:renderer && electron .",
-    "dist": "npm run build:renderer && electron-builder --win portable",
-    "dist:installer": "npm run build:renderer && electron-builder --win nsis"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",
     "@fontsource/hanken-grotesk": "^5.2.8",
     "@fontsource/space-mono": "^5.2.9",
-    "font-list": "^2.1.0",
-    "music-metadata": "^11.13.0",
+    "@supabase/supabase-js": "^2.49.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8",
     "vite": "^5.4.11"
-  },
-  "build": {
-    "appId": "com.producerpro.app",
-    "productName": "Producer Pro",
-    "files": [
-      "electron/**/*",
-      "dist/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "assets",
-        "to": "assets",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "win": {
-      "target": [
-        "portable"
-      ],
-      "icon": "assets/build/icon.ico",
-      "artifactName": "ProducerPro-${version}.${ext}",
-      "fileAssociations": [
-        {
-          "ext": "producershow",
-          "name": "Producer Pro Show",
-          "description": "Producer Pro show document",
-          "icon": "assets/icons/filetype-show-256.png",
-          "role": "Editor"
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerSidebar": "assets/installer/sidebar.bmp",
-      "installerHeader": "assets/installer/header-light.bmp",
-      "installerHeaderIcon": "assets/build/icon.ico"
-    },
-    "portable": {
-      "artifactName": "ProducerPro.exe"
-    }
   }
 }

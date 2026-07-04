@@ -1,5 +1,5 @@
 import React from 'react';
-import { RUN_SHEET_FIELD_LABELS } from '../../shared/runSheetConfig.cjs';
+import { RUN_SHEET_FIELD_LABELS } from '../../shared/runSheetConfig.js';
 import { brand } from '../assets/index.js';
 
 function spanStyle(style) {

@@ -6,18 +6,18 @@ import Icon from './components/Icon.jsx';
 /* ---------- Status badge ---------- */
 
 const STATUS_CONFIG = {
-  draft: { label: 'Draft', detail: 'lineup editable', icon: 'status-draft-dot' },
-  packaged: { label: 'Packaged', detail: 'folder on disk', icon: 'status-packaged' },
-  closed: { label: 'Closed', detail: 'settled & read-only', icon: 'status-closed' },
+  draft: { label: 'Draft', detail: 'Lineup editable' },
+  packaged: { label: 'Packaged', detail: 'Folder in Drive' },
+  closed: { label: 'Closed', detail: 'Settled & read-only' },
 };
 
 export function StatusBadge({ status }) {
   const s = status || 'draft';
   const cfg = STATUS_CONFIG[s] || STATUS_CONFIG.draft;
   return (
-    <span className={'badge ' + s}>
-      <Icon src={icons.status(cfg.icon)} size={14} className="badge-icon" alt="" />
-      {cfg.label} · {cfg.detail}
+    <span className={'badge ' + s} title={cfg.detail}>
+      <span className="badge-dot" aria-hidden />
+      {cfg.label}
     </span>
   );
 }
@@ -143,7 +143,7 @@ export function ToastProvider({ children }) {
       {children}
       <div className="toast-stack">
         {toasts.map((t) => (
-          <div key={t.id} className={'toast' + (t.kind === 'error' ? ' error' : '')}>
+          <div key={t.id} className={'toast ' + (t.kind || 'success')}>
             <Icon src={icons.status(TOAST_ICON[t.kind] || TOAST_ICON.success)} size={20} className="toast-icon" alt="" />
             <div className="toast-content">
               <div className="toast-title">{t.title}</div>

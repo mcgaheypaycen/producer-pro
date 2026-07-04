@@ -22,28 +22,22 @@ export const brand = {
 };
 
 export const build = {
-  icon: () => asset('build/icon-1024.png') || asset('build/icon.ico'),
-  splash: () => asset('build/splash-1600x1000.png') || asset('build/splash-800x500.png'),
-};
-
-export const textures = {
-  rail: () => asset('textures/texture-rail.png'),
-  paper: () => asset('textures/texture-paper.png'),
-  runsheetDesk: () => asset('textures/runsheet-desk-texture.png'),
-  runsheetPaper: () => asset('textures/runsheet-paper-tile.png'),
+  icon: () => asset('build/icon-1024.png'),
 };
 
 export const illustrations = {
-  emptyShows: () => asset('illustrations/empty-shows-320x240.png') || asset('illustrations/empty-shows.svg'),
-  emptyPerformers: () => asset('illustrations/empty-performers-320x240.png') || asset('illustrations/empty-performers.svg'),
-  emptyVenues: () => asset('illustrations/empty-venues-320x240.png') || asset('illustrations/empty-venues.svg'),
-  emptyActs: () => asset('illustrations/empty-acts-320x240.png') || asset('illustrations/empty-acts.svg'),
-  emptyLineup: () => asset('illustrations/empty-lineup-320x240.png') || asset('illustrations/empty-lineup.svg'),
-  onboardingHero: () => asset('illustrations/onboarding-hero-1200x800.png') || asset('illustrations/onboarding-hero-600x400.png') || asset('illustrations/onboarding-hero.svg'),
+  emptyShows: () => asset('illustrations/empty-shows-320x240.png'),
+  emptyPerformers: () => asset('illustrations/empty-performers-320x240.png'),
+  emptyVenues: () => asset('illustrations/empty-venues-320x240.png'),
+  emptyActs: () => asset('illustrations/empty-acts-320x240.png'),
+  emptyLineup: () => asset('illustrations/empty-lineup-320x240.png'),
+  onboardingHero: () => asset('illustrations/onboarding-hero-1200x800.png'),
+  authArt: () => asset('illustrations/auth-side-768x1024.png'),
 };
 
 export const icons = {
-  nav: (id, active = false) => asset(`icons/nav/nav-${id}-${active ? 'active' : 'default'}.svg`),
+  // One file per nav icon; active tint is applied via CSS mask color.
+  nav: (id) => asset(`icons/nav/nav-${id}-default.svg`),
   action: (name) => asset(`icons/actions/icon-${name}.svg`),
   status: (name) => asset(`icons/status/${name}.svg`),
   motion: (name) => asset(`motion/${name}.svg`),

@@ -89,13 +89,13 @@ export default function LineupDragList({
           </div>
           <div className="lineup-meta">
             {entry.length && <span className="lineup-time">{entry.length}</span>}
-            <span className={'media-badge ' + (entry.mediaPath ? 'ok' : 'missing')}>
+            <span className={'media-badge ' + (entry.mediaFileId ? 'ok' : 'missing')}>
               <Icon
-                src={icons.status(entry.mediaPath ? 'badge-media-ok' : 'badge-media-missing')}
+                src={icons.status(entry.mediaFileId ? 'badge-media-ok' : 'badge-media-missing')}
                 size={12}
                 alt=""
               />
-              {entry.mediaPath ? 'media' : 'no media'}
+              {entry.mediaFileId ? 'media' : 'no media'}
             </span>
           </div>
           {!closed && (

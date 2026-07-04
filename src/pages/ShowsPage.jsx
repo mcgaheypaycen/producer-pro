@@ -2,8 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
 import { SearchInput, EmptyState, ConfirmDialog, useToast, money, formatDate, StatusBadge, formatRuntime, parseMinutes } from '../ui.jsx';
+import { closeoutTotals } from '../lib/closeoutMath.js';
 import { illustrations, icons } from '../assets/index.js';
 import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
+import ImportGoogleFormButton from '../components/ImportGoogleFormButton.jsx';
 import Icon from '../components/Icon.jsx';
 
 export default function ShowsPage({ onOpenShow }) {
@@ -29,7 +31,10 @@ export default function ShowsPage({ onOpenShow }) {
 
   useTopBar(
     [{ label: 'Shows' }],
-    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={newShow}>New show</BtnWithIcon>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <ImportGoogleFormButton />
+      <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={newShow}>New show</BtnWithIcon>
+    </div>
   );
 
   const filtered = useMemo(() => {
@@ -40,12 +45,7 @@ export default function ShowsPage({ onOpenShow }) {
       .sort((a, b) => (b.dateLabel || '').localeCompare(a.dateLabel || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [shows, venues, query, filter]);
 
-  const netProfit = (s) => {
-    const c = s.closeout || {};
-    const sum = (arr) => (arr || []).reduce((t, x) => t + (Number(x.amount) || 0), 0);
-    const ticketRevenue = (Number(c.ticketsSold) || 0) * (Number(s.ticketPrice) || 0);
-    return ticketRevenue + sum(c.revenues) - sum(c.expenses) - sum(c.payouts);
-  };
+  const netProfit = (s) => closeoutTotals(s.closeout, s).net;
 
   const runtime = (s) => {
     const mins = (s.lineup || []).reduce((t, e) => t + parseMinutes(e.length), 0);
@@ -150,7 +150,7 @@ export default function ShowsPage({ onOpenShow }) {
       {deleting && (
         <ConfirmDialog
           title="Delete this show?"
-          body={`"${deleting.title || 'Untitled show'}" will be removed from your records. Files already on disk are not affected.`}
+          body={`"${deleting.title || 'Untitled show'}" will be removed from your records. Files already in your Google Drive are not affected.`}
           confirmLabel="Delete"
           danger
           onCancel={() => setDeleting(null)}

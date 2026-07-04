@@ -1,0 +1,11 @@
+node_modules/
+dist/
+release/
+*.log
+.env
+.env.local
+.vercel/
+.claude/
+*.zip
+.DS_Store
+Thumbs.db

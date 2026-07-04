@@ -6,5 +6,5 @@ const PHASES = ['idle', 'copying', 'writing-rtf', 'complete'];
 
 export default function PackageProgressIcon({ phase = 'idle', size = 48 }) {
   const safe = PHASES.includes(phase) ? phase : 'idle';
-  return <Icon src={icons.packageProgress(safe)} size={size} className="package-progress-icon" alt="" />;
+  return <Icon img src={icons.packageProgress(safe)} size={size} className="package-progress-icon" alt="" />;
 }

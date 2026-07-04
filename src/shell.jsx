@@ -1,26 +1,24 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+const EMPTY_TOP_BAR = { breadcrumb: [], action: null };
 
 const ShellContext = createContext(null);
 
 export function ShellProvider({ children }) {
-  const [topBar, setTopBarState] = useState({ breadcrumb: [], action: null });
-  const [dataInfo, setDataInfo] = useState({ path: '', lastSaved: null });
+  const topBarRef = useRef(EMPTY_TOP_BAR);
+  const [, syncTopBar] = useState(0);
+  const [dataInfo, setDataInfo] = useState({ lastSaved: null });
 
-  const refreshDataInfo = useCallback(async () => {
-    if (window.api?.getDataInfo) {
-      const info = await window.api.getDataInfo();
-      setDataInfo(info);
-    }
+  const requestTopBarSync = useCallback(() => {
+    syncTopBar((n) => n + 1);
   }, []);
 
-  useEffect(() => { refreshDataInfo(); }, [refreshDataInfo]);
-
-  const setTopBar = useCallback((config) => {
-    setTopBarState(config || { breadcrumb: [], action: null });
+  const refreshDataInfo = useCallback(() => {
+    setDataInfo({ lastSaved: new Date().toISOString() });
   }, []);
 
   return (
-    <ShellContext.Provider value={{ topBar, setTopBar, dataInfo, refreshDataInfo }}>
+    <ShellContext.Provider value={{ topBarRef, requestTopBarSync, dataInfo, refreshDataInfo }}>
       {children}
     </ShellContext.Provider>
   );
@@ -32,9 +30,18 @@ export function useShell() {
 
 /** Registers breadcrumb + primary action for the contextual top bar. */
 export function useTopBar(breadcrumb, action) {
-  const { setTopBar } = useShell();
+  const { topBarRef, requestTopBarSync } = useShell();
+  topBarRef.current = { breadcrumb, action };
+
+  const breadcrumbKey = JSON.stringify(breadcrumb);
+  useLayoutEffect(() => {
+    requestTopBarSync();
+  }, [breadcrumbKey, requestTopBarSync]);
+
   useEffect(() => {
-    setTopBar({ breadcrumb, action });
-    return () => setTopBar(null);
-  });
+    return () => {
+      topBarRef.current = EMPTY_TOP_BAR;
+      requestTopBarSync();
+    };
+  }, [topBarRef, requestTopBarSync]);
 }

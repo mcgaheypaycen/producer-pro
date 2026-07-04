@@ -2,7 +2,7 @@ import React from 'react';
 import FontPicker from './FontPicker.jsx';
 import { icons } from '../assets/index.js';
 import { IconButton } from './Icon.jsx';
-import { ELEMENT_LABELS, RUN_SHEET_FIELD_LABELS } from '../../shared/runSheetConfig.cjs';
+import { ELEMENT_LABELS, RUN_SHEET_FIELD_LABELS } from '../../shared/runSheetConfig.js';
 
 function ElementStyleRow({ label, style, onChange, fonts, disabled }) {
   const patch = (key, val) => onChange({ ...style, [key]: val });

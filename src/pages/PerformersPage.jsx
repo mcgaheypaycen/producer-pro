@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
 import { useTopBar } from '../shell.jsx';
-import { Drawer, Field, SearchInput, EmptyState, ConfirmDialog, useToast, PaymentChip } from '../ui.jsx';
+import { Drawer, Modal, Field, SearchInput, EmptyState, ConfirmDialog, useToast, PaymentChip } from '../ui.jsx';
 import { illustrations, icons } from '../assets/index.js';
-import { IconButton, BtnWithIcon } from '../components/Icon.jsx';
+import Icon, { IconButton, BtnWithIcon } from '../components/Icon.jsx';
+import AddToShowModal, { actLineupEntry } from '../components/AddToShowModal.jsx';
+import ImportGoogleFormButton from '../components/ImportGoogleFormButton.jsx';
+import { ActFormModal } from './ActsPage.jsx';
 
 export const PAYMENT_METHODS = ['Venmo', 'CashApp', 'PayPal', 'Zelle', 'Cash', 'Check', 'Other'];
 
@@ -109,18 +112,94 @@ export function PerformerForm({ performer, onClose, onSaved }) {
 /** @deprecated use PerformerForm — kept for ActFormModal imports */
 export const PerformerFormModal = PerformerForm;
 
-export default function PerformersPage() {
+/**
+ * Two-step flow: performers join a show through one of their acts, so pick
+ * (or create) the act first, then pick the show.
+ */
+function AddPerformerToShow({ performer, onOpenShow, onClose }) {
+  const { acts, performers } = useData();
+  const performerActs = acts
+    .filter((a) => a.performerId === performer.id)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const [chosenAct, setChosenAct] = useState(null);
+  // No acts yet: jump straight into creating one.
+  const [creatingAct, setCreatingAct] = useState(performerActs.length === 0);
+
+  if (chosenAct) {
+    return (
+      <AddToShowModal
+        title="Add to show"
+        description={<>Add <strong>{performer.stageName}</strong> ({chosenAct.name}) to the running order of an open show, or start a new one.</>}
+        entityLabel={`${performer.stageName} · ${chosenAct.name}`}
+        applyToShow={(show) => ({
+          ...show,
+          lineup: [...(show.lineup || []), actLineupEntry(chosenAct, performers)],
+        })}
+        onOpenShow={onOpenShow}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (creatingAct) {
+    return (
+      <ActFormModal
+        defaultPerformerId={performer.id}
+        onClose={() => (performerActs.length === 0 ? onClose() : setCreatingAct(false))}
+        onSaved={(saved) => setChosenAct(saved)}
+      />
+    );
+  }
+
+  return (
+    <Modal
+      title={`Add ${performer.stageName} to a show`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>Cancel</button>
+          <BtnWithIcon icon={icons.action('add')} className="btn secondary" onClick={() => setCreatingAct(true)}>
+            New act
+          </BtnWithIcon>
+        </>
+      }
+    >
+      <p style={{ color: 'var(--on-paper-muted)', marginBottom: 12, fontSize: 14 }}>
+        Which act should {performer.stageName} perform?
+      </p>
+      <div className="picker-list">
+        {performerActs.map((a) => (
+          <button key={a.id} className="picker-item" onClick={() => setChosenAct(a)}>
+            <div>
+              <div className="picker-name">{a.name}</div>
+              <div className="picker-sub">{[a.aesthetic, a.length].filter(Boolean).join(' · ') || '—'}</div>
+            </div>
+            <span style={{ color: 'var(--wine-600)' }}>
+              <Icon src={icons.action('add')} size={16} alt="" />
+            </span>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+export default function PerformersPage({ onOpenShow }) {
   const { performers, acts, remove } = useData();
   const toast = useToast();
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [addingToShow, setAddingToShow] = useState(null);
 
   const openAdd = () => setEditing({});
 
   useTopBar(
     [{ label: 'Performers' }],
-    <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add performer</BtnWithIcon>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <ImportGoogleFormButton />
+      <BtnWithIcon icon={icons.action('add')} className="btn primary" onClick={openAdd}>Add performer</BtnWithIcon>
+    </div>
   );
 
   const filtered = useMemo(() => {
@@ -176,7 +255,10 @@ export default function PerformersPage() {
                     <td><PaymentChip method={p.paymentMethod} info={p.paymentInfo} /></td>
                     <td className="mono">{actCount}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(p)} />
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <button className="btn ghost sm" title="Add to a show" onClick={() => setAddingToShow(p)}>Add to show</button>
+                        <IconButton src={icons.action('delete')} className="danger" title="Delete" onClick={() => setDeleting(p)} />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -187,6 +269,14 @@ export default function PerformersPage() {
       )}
 
       {editing && <PerformerForm performer={editing.id ? editing : null} onClose={() => setEditing(null)} />}
+
+      {addingToShow && (
+        <AddPerformerToShow
+          performer={addingToShow}
+          onOpenShow={onOpenShow}
+          onClose={() => setAddingToShow(null)}
+        />
+      )}
 
       {deleting && (
         <ConfirmDialog

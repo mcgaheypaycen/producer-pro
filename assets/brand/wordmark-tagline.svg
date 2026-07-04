@@ -3,15 +3,15 @@
   <g transform="translate(4,2) scale(0.03515625)">
   <!-- proscenium / curtain arch -->
   <path d="M300 744 L300 480 A212 212 0 0 1 724 480 L724 744"
-        fill="none" stroke="#7B1E2B" stroke-width="76"
+        fill="none" stroke="#8E4F60" stroke-width="76"
         stroke-linecap="round" stroke-linejoin="round"/>
   <!-- footlight bar -->
-  <rect x="276" y="752" width="472" height="44" rx="22" fill="#BD9550"/>
+  <rect x="276" y="752" width="472" height="44" rx="22" fill="#BE9051"/>
   <!-- three footlights -->
-  <circle cx="384" cy="738" r="30" fill="#D9B879"/>
-  <circle cx="512" cy="734" r="34" fill="#D9B879"/>
-  <circle cx="640" cy="738" r="30" fill="#D9B879"/>
+  <circle cx="384" cy="738" r="30" fill="#D4B183"/>
+  <circle cx="512" cy="734" r="34" fill="#D4B183"/>
+  <circle cx="640" cy="738" r="30" fill="#D4B183"/>
   <!-- center light ray hint -->
   <path d="M512 690 L512 712 M476 706 L490 720 M548 706 L534 720"
-        stroke="#D9B879" stroke-width="14" stroke-linecap="round" fill="none"/></g><text x="52" y="23" font-family="'Fraunces','Fraunces 72',Georgia,'Times New Roman',serif" font-size="22" font-weight="600" fill="#F1E8DC">Producer <tspan fill="#D9B879">Pro</tspan></text><text x="52" y="40" font-family="'Hanken Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="10.5" letter-spacing="0.5" fill="#B6A493">Cabaret show manager</text>
+        stroke="#D4B183" stroke-width="14" stroke-linecap="round" fill="none"/></g><text x="52" y="23" font-family="'Fraunces','Fraunces 72',Georgia,'Times New Roman',serif" font-size="22" font-weight="600" fill="#3B2C36">Producer <tspan fill="#D4B183">Pro</tspan></text><text x="52" y="40" font-family="'Hanken Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="10.5" letter-spacing="0.5" fill="#8A7A82">Cabaret show manager</text>
 </svg>
