@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useState } from 'react';
 import { icons } from './assets/index.js';
 import { IconButton, BtnWithIcon } from './components/Icon.jsx';
 import Icon from './components/Icon.jsx';
+import { playSfx } from './lib/sfx.js';
 
 /* ---------- Status badge ---------- */
 
@@ -47,6 +48,7 @@ export function PaymentChip({ method, info }) {
 /* ---------- Modal ---------- */
 
 export function Modal({ title, children, footer, onClose, wide }) {
+  React.useEffect(() => { playSfx('modalOpen', 0.35); }, []);
   return (
     <>
       <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} />
@@ -65,6 +67,7 @@ export function Modal({ title, children, footer, onClose, wide }) {
 /* ---------- Drawer ---------- */
 
 export function Drawer({ title, children, footer, onClose }) {
+  React.useEffect(() => { playSfx('modalOpen', 0.35); }, []);
   return (
     <>
       <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} />
@@ -135,6 +138,9 @@ export function ToastProvider({ children }) {
   const toast = useCallback((title, body, kind = 'success', action) => {
     const id = Math.random().toString(36).slice(2);
     setToasts((t) => [...t, { id, title, body, kind, action }]);
+    if (kind === 'error') playSfx('error', 0.4);
+    else if (kind === 'info') playSfx('navigate', 0.25);
+    else playSfx('success', 0.35);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), action ? 8000 : 4500);
   }, []);
 

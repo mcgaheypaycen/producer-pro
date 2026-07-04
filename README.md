@@ -92,8 +92,28 @@ supabase/
   functions/       Deno edge functions: Stripe checkout/portal/webhook, Google token refresh
 src/               React app
   auth.jsx         session + profile + subscription gating context
-  lib/             supabase client, data API, Google Drive, RTF/CSV builders, billing
+  lib/             supabase client, data API, Google Drive, RTF/CSV builders, billing, sfx
   pages/           Shows, Show editor, Close-out, Performers, Acts, Venues, Login, Paywall
   components/      shared UI, account menu, desktop-data importer
+  styles.css       Atelier design system — dark Adobe-inspired workspace
+assets/
+  audio/sfx/       UI sound effects (generated via fal.ai Stable Audio 3 SFX)
+  motion/          Ambient video loops (generated via fal.ai Luma Ray 3.2)
+  illustrations/   Empty states + auth/onboarding art (generated via fal.ai FLUX.2)
+  brand/           Logo + wordmark variants (white SVGs for dark UI)
 shared/            run sheet typography config (used by UI + RTF builder)
 ```
+
+## Design system
+
+The UI uses a dark, Adobe pro-tool–inspired workspace ("Atelier"): a deep
+charcoal canvas, dense panels with hairline separators, a violet primary
+echoing Premiere Pro, and warm gold accents preserving the cabaret heritage.
+
+- **Sound effects** — generated via fal.ai (`fal-ai/stable-audio-3/small/sfx`)
+  and played through `src/lib/sfx.js`. A mute toggle lives in the rail footer.
+  Sounds respect `prefers-reduced-motion` and the browser's autoplay policy.
+- **Ambient video loops** — generated via fal.ai (`luma/agent/ray/v3.2/text-to-video`)
+  for the loading screen and auth side panel.
+- **Illustrations** — generated via fal.ai (`fal-ai/flux-2/klein/9b`) for the
+  auth art, onboarding hero, and five empty-state illustrations.

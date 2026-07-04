@@ -1,0 +1,12 @@
+<!-- White icon-only mark for dark UI -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <path d="M300 744 L300 480 A212 212 0 0 1 724 480 L724 744"
+        fill="none" stroke="#FFFFFF" stroke-width="76"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="276" y="752" width="472" height="44" rx="22" fill="#FFFFFF"/>
+  <circle cx="384" cy="738" r="30" fill="#FFFFFF"/>
+  <circle cx="512" cy="734" r="34" fill="#FFFFFF"/>
+  <circle cx="640" cy="738" r="30" fill="#FFFFFF"/>
+  <path d="M512 690 L512 712 M476 706 L490 720 M548 706 L534 720"
+        stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" fill="none"/>
+</svg>

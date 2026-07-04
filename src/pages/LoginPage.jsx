@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { brand, illustrations } from '../assets/index.js';
+import { brand, illustrations, motion } from '../assets/index.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../ui.jsx';
 
@@ -7,6 +7,8 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const authLoop = motion.authLoop();
+  const authArt = illustrations.authArt();
 
   const handleSignIn = async () => {
     setBusy(true);
@@ -21,14 +23,30 @@ export default function LoginPage() {
   return (
     <div className="auth-screen">
       <div className="auth-panel">
-        <div
-          className="auth-art"
-          style={{ backgroundImage: `url(${illustrations.authArt()})` }}
-          aria-hidden
-        />
+        <div className="auth-art" aria-hidden>
+          {authLoop && (
+            <video
+              className="auth-art-video"
+              src={authLoop}
+              autoPlay
+              loop
+              muted
+              playsInline
+              poster={authArt || undefined}
+            />
+          )}
+          {!authLoop && authArt && (
+            <div
+              className="auth-art-fallback"
+              style={{ backgroundImage: `url(${authArt})`, position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center top' }}
+            />
+          )}
+        </div>
         <div className="auth-card">
-          <img src={brand.logoIcon()} alt="" width={52} height={52} />
-          <img src={brand.wordmarkHorizontal()} alt="Producer Pro" height={26} style={{ marginTop: 12 }} />
+          <span className="auth-brand-mark" aria-hidden>
+            <img src={brand.logoIcon()} alt="" width={40} height={40} style={{ filter: 'brightness(0) invert(1)' }} />
+          </span>
+          <h1 className="auth-title">Producer Pro</h1>
           <p className="auth-lead">
             Build running orders, generate show packages, and close out the night —
             from any browser, with your files in your own Google Drive.

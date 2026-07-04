@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { brand, illustrations } from '../assets/index.js';
+import { brand, illustrations, motion } from '../assets/index.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../ui.jsx';
 import { startCheckout, openBillingPortal } from '../lib/billing.js';
@@ -15,6 +15,8 @@ export default function PaywallPage() {
   const { user, profile, signOut } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const authLoop = motion.authLoop();
+  const authArt = illustrations.authArt();
 
   // canceled / incomplete subscriptions have a Stripe customer to manage.
   const hadSubscription = profile?.subscription_status && profile.subscription_status !== 'none';
@@ -32,13 +34,28 @@ export default function PaywallPage() {
   return (
     <div className="auth-screen">
       <div className="auth-panel">
-        <div
-          className="auth-art"
-          style={{ backgroundImage: `url(${illustrations.authArt()})` }}
-          aria-hidden
-        />
+        <div className="auth-art" aria-hidden>
+          {authLoop && (
+            <video
+              className="auth-art-video"
+              src={authLoop}
+              autoPlay
+              loop
+              muted
+              playsInline
+              poster={authArt || undefined}
+            />
+          )}
+          {!authLoop && authArt && (
+            <div
+              style={{ position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundImage: `url(${authArt})` }}
+            />
+          )}
+        </div>
         <div className="auth-card">
-          <img src={brand.wordmarkHorizontal()} alt="Producer Pro" height={26} />
+          <span className="auth-brand-mark" aria-hidden>
+            <img src={brand.logoIcon()} alt="" width={26} height={26} style={{ filter: 'brightness(0) invert(1)' }} />
+          </span>
           <h1 className="auth-title">
             {hadSubscription ? 'Your subscription has ended' : 'Start your free trial'}
           </h1>

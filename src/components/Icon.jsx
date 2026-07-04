@@ -1,5 +1,6 @@
 import React from 'react';
 import { asset } from '../assets/index.js';
+import { playSfx } from '../lib/sfx.js';
 
 /**
  * Renders an SVG icon tinted by `currentColor` using a CSS mask, so icons
@@ -41,7 +42,7 @@ export function IconButton({ path, src, size = 16, className = '', title, disabl
       title={title}
       aria-label={title}
       disabled={disabled}
-      onClick={onClick}
+      onClick={(e) => { if (!disabled) playSfx('click', 0.18); onClick?.(e); }}
     >
       <Icon path={path} src={src} size={size} alt="" />
     </button>

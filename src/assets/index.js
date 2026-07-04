@@ -1,6 +1,6 @@
 /** Vite-resolved URLs for files under /assets (bundled into dist on build). */
 
-const modules = import.meta.glob('../../assets/**/*.{svg,png}', {
+const modules = import.meta.glob('../../assets/**/*.{svg,png,mp4,wav,mp3}', {
   eager: true,
   import: 'default',
 });
@@ -11,10 +11,12 @@ export function asset(path) {
 }
 
 export const brand = {
-  wordmarkHorizontal: () => asset('brand/wordmark-horizontal.svg'),
+  wordmarkHorizontal: () => asset('brand/wordmark-horizontal-white.svg') || asset('brand/wordmark-horizontal.svg'),
+  wordmarkHorizontalDark: () => asset('brand/wordmark-horizontal.svg'),
   wordmarkTagline: () => asset('brand/wordmark-tagline.svg'),
   wordmarkStacked: () => asset('brand/wordmark-stacked.svg'),
-  logoIcon: () => asset('brand/logo-icon-only.svg'),
+  logoIcon: () => asset('brand/logo-icon-white.svg') || asset('brand/logo-icon-only.svg'),
+  logoIconColor: () => asset('brand/logo-icon-only.svg'),
   logoFullColor: () => asset('brand/logo-full-color.svg'),
   logoMonochromeWhite: () => asset('brand/logo-monochrome-white.svg'),
   logoMonochromeBlack: () => asset('brand/logo-monochrome-black.svg'),
@@ -33,6 +35,11 @@ export const illustrations = {
   emptyLineup: () => asset('illustrations/empty-lineup-320x240.png'),
   onboardingHero: () => asset('illustrations/onboarding-hero-1200x800.png'),
   authArt: () => asset('illustrations/auth-side-768x1024.png'),
+};
+
+export const motion = {
+  loadingLoop: () => asset('motion/loading-loop.mp4'),
+  authLoop: () => asset('motion/auth-loop.mp4'),
 };
 
 export const icons = {
